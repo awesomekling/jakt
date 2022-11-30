@@ -7,44 +7,4 @@
 
 #pragma once
 
-#include <Jakt/Checked.h>
-
-#if defined(KERNEL)
-#    include <Kernel/Heap/kmalloc.h>
-#else
-#    include <new>
-#    include <stdlib.h>
-
-#    define kcalloc calloc
-#    define kmalloc malloc
-#    define kmalloc_good_size malloc_good_size
-
-namespace Jakt {
-inline void kfree_sized(void* ptr, size_t)
-{
-    free(ptr);
-}
-}
-#endif
-
-#ifndef __serenity__
-#    include <Jakt/Types.h>
-#endif
-
-namespace Jakt {
-using std::nothrow;
-
-inline void* kmalloc_array(Checked<size_t> a, Checked<size_t> b)
-{
-    auto size = a * b;
-    VERIFY(!size.has_overflow());
-    return kmalloc(size.value());
-}
-
-inline void* kmalloc_array(Checked<size_t> a, Checked<size_t> b, Checked<size_t> c)
-{
-    auto size = a * b * c;
-    VERIFY(!size.has_overflow());
-    return kmalloc(size.value());
-}
-}
+#include <AK/kmalloc.h>

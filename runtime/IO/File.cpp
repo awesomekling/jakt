@@ -37,7 +37,7 @@ File::~File()
     fclose(m_stdio_file);
 }
 
-ErrorOr<NonnullRefPtr<File>> File::open_for_reading(String path)
+ErrorOr<NonnullRefPtr<File>> File::open_for_reading(Jakt::String path)
 {
     auto* stdio_file = fopen(path.c_string(), "rb");
     if (!stdio_file) {
@@ -48,7 +48,7 @@ ErrorOr<NonnullRefPtr<File>> File::open_for_reading(String path)
     return file;
 }
 
-ErrorOr<NonnullRefPtr<File>> File::open_for_writing(String path)
+ErrorOr<NonnullRefPtr<File>> File::open_for_writing(Jakt::String path)
 {
     auto* stdio_file = fopen(path.c_string(), "wb");
     if (!stdio_file) {
@@ -59,7 +59,7 @@ ErrorOr<NonnullRefPtr<File>> File::open_for_writing(String path)
     return file;
 }
 
-ErrorOr<Array<u8>> File::read_all()
+ErrorOr<Jakt::Array<u8>> File::read_all()
 {
     auto entire_file = TRY(Array<u8>::create_empty());
 
@@ -104,7 +104,7 @@ ErrorOr<size_t> File::write(Array<u8> data)
     return nwritten;
 }
 
-bool File::exists(String path)
+bool File::exists(Jakt::String path)
 {
 #ifdef _WIN32
     auto res = GetFileAttributesA(path.c_string());
@@ -114,7 +114,7 @@ bool File::exists(String path)
 #endif
 }
 
-ErrorOr<String> File::current_executable_path()
+ErrorOr<Jakt::String> File::current_executable_path()
 {
     char path[4096] {};
 #ifdef _WIN32
@@ -143,7 +143,7 @@ ErrorOr<String> File::current_executable_path()
 #endif
     path[sizeof(path) - 1] = '\0';
 
-    return String(path);
+    return Jakt::String(path);
 }
 
 }

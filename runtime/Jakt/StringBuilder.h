@@ -6,6 +6,7 @@
 
 #pragma once
 
+#include <AK/StringBuilder.h>
 #include <Builtins/Array.h>
 #include <Builtins/Dictionary.h>
 #include <Builtins/Set.h>
@@ -23,24 +24,27 @@ class StringBuilder {
 public:
     static ErrorOr<StringBuilder> create()
     {
-        auto array = TRY(Array<u8>::create_empty());
+        auto array = TRY(Jakt::Array<u8>::create_empty());
         return StringBuilder { move(array) };
     }
     ~StringBuilder() = default;
 
+    ErrorOr<void> append(char const*);
     ErrorOr<void> append(StringView);
     ErrorOr<void> append_code_point(u32);
     ErrorOr<void> append(char);
     template<typename... Parameters>
-    ErrorOr<void> appendff(StringView&& fmtstr, Parameters const&... parameters)
+    ErrorOr<void> appendff(char const* fmtstr, Parameters const&... parameters)
     {
-        VariadicFormatParams variadic_format_params { parameters... };
-        return vformat(*this, fmtstr, variadic_format_params);
+        AK::VariadicFormatParams variadic_format_params { parameters... };
+        AK::StringBuilder ak_builder;
+        TRY(vformat(ak_builder, StringView(fmtstr, strlen(fmtstr)), variadic_format_params));
+        return append(ak_builder.string_view());
     }
     ErrorOr<void> append(char const*, size_t);
     ErrorOr<void> append_escaped_for_json(StringView);
 
-    [[nodiscard]] ErrorOr<String> to_string() const;
+    [[nodiscard]] ErrorOr<Jakt::String> to_string() const;
 
     [[nodiscard]] StringView string_view() const;
     void clear();
@@ -62,17 +66,17 @@ public:
     }
 
     // FIXME: These only exist because we don't support function overloading in Jakt yet.
-    ErrorOr<void> append_string(String const& string) { return append(string.view()); }
-    ErrorOr<void> append_c_string(char const* string) { return append(string); }
+    ErrorOr<void> append_string(Jakt::String const& string) { return append(string.view()); }
+    ErrorOr<void> append_c_string(char const* string) { return append(StringView(string, strlen(string))); }
 
 private:
-    explicit StringBuilder(Array<u8> buffer);
+    explicit StringBuilder(Jakt::Array<u8> buffer);
 
     ErrorOr<void> will_append(size_t);
     u8* data() { return m_buffer.unsafe_data(); }
     u8 const* data() const { return const_cast<StringBuilder*>(this)->m_buffer.unsafe_data(); }
 
-    Array<u8> m_buffer;
+    Jakt::Array<u8> m_buffer;
 };
 
 }
@@ -82,13 +86,17 @@ namespace Jakt {
 template<typename T>
 ErrorOr<void> append_value(StringBuilder& string_builder, T const& value, bool alternative_form=false)
 {
-    if constexpr (IsSame<String, T>)
+    if constexpr (AK::IsSame<String, T>)
         TRY(string_builder.append("\""));
     TRY(string_builder.appendff(alternative_form ? "{:#}" : "{}", value));
-    if constexpr (IsSame<String, T>)
+    if constexpr (AK::IsSame<String, T>)
         TRY(string_builder.append("\""));
     return {};
 }
+
+}
+
+namespace AK {
 
 template<typename T>
 struct Formatter<JaktInternal::Array<T>> : Formatter<StringView> {
@@ -96,7 +104,7 @@ struct Formatter<JaktInternal::Array<T>> : Formatter<StringView> {
     {
         JaktInternal::PrettyPrint::ScopedEnable pretty_print_enable { m_alternative_form };
 
-        auto string_builder = TRY(StringBuilder::create());
+        auto string_builder = TRY(Jakt::StringBuilder::create());
         TRY(string_builder.append("["));
         {
             JaktInternal::PrettyPrint::ScopedLevelIncrease increase_indent {};
@@ -119,7 +127,7 @@ struct Formatter<JaktInternal::ArraySlice<T>> : Formatter<StringView> {
     {
         JaktInternal::PrettyPrint::ScopedEnable pretty_print_enable { m_alternative_form };
 
-        auto string_builder = TRY(StringBuilder::create());
+        auto string_builder = TRY(Jakt::StringBuilder::create());
         TRY(string_builder.append("["));
         {
             JaktInternal::PrettyPrint::ScopedLevelIncrease increase_indent {};
@@ -142,7 +150,7 @@ struct Formatter<JaktInternal::ArrayIterator<T>> : Formatter<StringView> {
     {
         JaktInternal::PrettyPrint::ScopedEnable pretty_print_enable { m_alternative_form };
 
-        auto string_builder = TRY(StringBuilder::create());
+        auto string_builder = TRY(Jakt::StringBuilder::create());
         TRY(string_builder.append("ArrayIterator"));
 
         return Formatter<StringView>::format(builder, TRY(string_builder.to_string()));
@@ -155,7 +163,7 @@ struct Formatter<JaktInternal::Set<T>> : Formatter<StringView> {
     {
         JaktInternal::PrettyPrint::ScopedEnable pretty_print_enable { m_alternative_form };
 
-        auto string_builder = TRY(StringBuilder::create());
+        auto string_builder = TRY(Jakt::StringBuilder::create());
         TRY(string_builder.append("{"));
         auto iter = set.iterator();
         {
@@ -179,7 +187,7 @@ struct Formatter<JaktInternal::SetIterator<T>> : Formatter<StringView> {
     {
         JaktInternal::PrettyPrint::ScopedEnable pretty_print_enable { m_alternative_form };
 
-        auto string_builder = TRY(StringBuilder::create());
+        auto string_builder = TRY(Jakt::StringBuilder::create());
         TRY(string_builder.append("SetIterator"));
         
         return Formatter<StringView>::format(builder, TRY(string_builder.to_string()));
@@ -192,7 +200,7 @@ struct Formatter<JaktInternal::Range<T>> : Formatter<StringView> {
     {
         JaktInternal::PrettyPrint::ScopedEnable pretty_print_enable { m_alternative_form };
 
-        auto string_builder = TRY(StringBuilder::create());
+        auto string_builder = TRY(Jakt::StringBuilder::create());
         {
             JaktInternal::PrettyPrint::ScopedLevelIncrease increase_indent {};
             TRY(JaktInternal::PrettyPrint::output_indentation(string_builder));
@@ -211,7 +219,7 @@ struct Formatter<JaktInternal::Dictionary<K, V>> : Formatter<StringView> {
     {
         JaktInternal::PrettyPrint::ScopedEnable pretty_print_enable { m_alternative_form };
 
-        auto string_builder = TRY(StringBuilder::create());
+        auto string_builder = TRY(Jakt::StringBuilder::create());
         TRY(string_builder.append("["));
         auto iter = dict.iterator();
 
@@ -239,7 +247,7 @@ struct Formatter<JaktInternal::DictionaryIterator<K, V>> : Formatter<StringView>
     {
         JaktInternal::PrettyPrint::ScopedEnable pretty_print_enable { m_alternative_form };
 
-        auto string_builder = TRY(StringBuilder::create());
+        auto string_builder = TRY(Jakt::StringBuilder::create());
         TRY(string_builder.append("DictionaryIterator"));
         
         return Formatter<StringView>::format(builder, TRY(string_builder.to_string()));
@@ -252,18 +260,18 @@ struct Formatter<Jakt::Tuple<Ts...>> : Formatter<StringView> {
     {
         JaktInternal::PrettyPrint::ScopedEnable pretty_print_enable { m_alternative_form };
 
-        auto string_builder = TRY(StringBuilder::create());
+        auto string_builder = TRY(Jakt::StringBuilder::create());
         TRY(string_builder.append("("));
         if constexpr (sizeof...(Ts) > 0) {
             JaktInternal::PrettyPrint::ScopedLevelIncrease increase_indent {};
             TRY(tuple.apply_as_args([&](auto first, auto... args) {
                 ErrorOr<void> append_error = {};
 
-                auto append_helper = [&](StringBuilder& string_builder, StringView value) {
+                auto append_helper = [&](Jakt::StringBuilder& string_builder, StringView value) {
                     if (!append_error.is_error())
                         append_error = string_builder.append(value);
                 };
-                auto append_value_helper = [&](StringBuilder& string_builder, auto const& value) {
+                auto append_value_helper = [&](Jakt::StringBuilder& string_builder, auto const& value) {
                     (void) JaktInternal::PrettyPrint::output_indentation(string_builder);
                     if (!append_error.is_error())
                         append_error = append_value(string_builder, value, m_alternative_form);

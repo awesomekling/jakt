@@ -30,7 +30,6 @@
 #include <Jakt/RefPtr.h>
 #include <Jakt/ScopeGuard.h>
 #include <Jakt/Span.h>
-#include <Jakt/StdLibExtraDetails.h>
 #include <Jakt/StdLibExtras.h>
 #include <Jakt/String.h>
 #include <Jakt/StringBuilder.h>
@@ -70,8 +69,6 @@ constexpr auto continue_on_panic = true;
 constexpr auto continue_on_panic = false;
 #endif
 
-using OptionalNone = Jakt::NullOptional;
-
 inline void panic(StringView message)
 {
     warnln("Panic: {}", message);
@@ -100,43 +97,43 @@ inline constexpr T unchecked_mul(T value, T other)
 template<typename T>
 inline constexpr T checked_add(T value, T other)
 {
-    Checked<T> checked = value;
+    AK::Checked<T> checked = value;
     checked += other;
     if (checked.has_overflow())
-        panic(MUST(String::formatted("Overflow in checked addition '{} + {}'", value, other)));
+        panic(MUST(Jakt::String::formatted("Overflow in checked addition '{} + {}'", value, other)));
     return checked.value_unchecked();
 }
 
 template<typename T>
 inline constexpr T checked_sub(T value, T other)
 {
-    Checked<T> checked = value;
+    AK::Checked<T> checked = value;
     checked -= other;
     if (checked.has_overflow())
-        panic(MUST(String::formatted("Overflow in checked subtraction '{} - {}'", value, other)));
+        panic(MUST(Jakt::String::formatted("Overflow in checked subtraction '{} - {}'", value, other)));
     return checked.value_unchecked();
 }
 
 template<typename T>
 inline constexpr T checked_mul(T value, T other)
 {
-    Checked<T> checked = value;
+    AK::Checked<T> checked = value;
     checked *= other;
     if (checked.has_overflow())
-        panic(MUST(String::formatted("Overflow in checked multiplication '{} * {}'", value, other)));
+        panic(MUST(Jakt::String::formatted("Overflow in checked multiplication '{} * {}'", value, other)));
     return checked.value_unchecked();
 }
 
 template<typename T>
 inline constexpr T checked_div(T value, T other)
 {
-    Checked<T> checked = value;
+    AK::Checked<T> checked = value;
     checked /= other;
     if (checked.has_overflow()) {
         if (other == 0)
-            panic(MUST(String::formatted("Division by zero in checked division '{} / {}'", value, other)));
+            panic(MUST(Jakt::String::formatted("Division by zero in checked division '{} / {}'", value, other)));
         else
-            panic(MUST(String::formatted("Overflow in checked division '{} / {}'", value, other)));
+            panic(MUST(Jakt::String::formatted("Overflow in checked division '{} / {}'", value, other)));
     }
     return checked.value_unchecked();
 }
@@ -144,13 +141,13 @@ inline constexpr T checked_div(T value, T other)
 template<typename T>
 inline constexpr T checked_mod(T value, T other)
 {
-    Checked<T> checked = value;
+    AK::Checked<T> checked = value;
     checked %= other;
     if (checked.has_overflow()) {
         if (other == 0)
-            panic(MUST(String::formatted("Division by zero in checked modulo '{} % {}'", value, other)));
+            panic(MUST(Jakt::String::formatted("Division by zero in checked modulo '{} % {}'", value, other)));
         else
-            panic(MUST(String::formatted("Overflow in checked modulo '{} % {}'", value, other)));
+            panic(MUST(Jakt::String::formatted("Overflow in checked modulo '{} % {}'", value, other)));
     }
     return checked.value_unchecked();
 }
@@ -158,7 +155,7 @@ inline constexpr T checked_mod(T value, T other)
 template<typename T>
 inline constexpr T arithmetic_shift_right(T value, size_t steps)
 {
-    if constexpr (IsSigned<T>) {
+    if constexpr (AK::IsSigned<T>) {
         if constexpr (sizeof(T) == 1) {
             auto sign = (value & 0x80);
             // 8-bit variant
@@ -184,11 +181,11 @@ inline constexpr T arithmetic_shift_right(T value, size_t steps)
 template<typename OutputType, typename InputType>
 ALWAYS_INLINE Optional<OutputType> fallible_integer_cast(InputType input)
 {
-    if constexpr (IsEnum<InputType>) {
+    if constexpr (AK::IsEnum<InputType>) {
         return fallible_integer_cast<OutputType>(to_underlying(input));
     } else {
-        static_assert(IsIntegral<InputType>);
-        if (!Jakt::is_within_range<OutputType>(input))
+        static_assert(AK::IsIntegral<InputType>);
+        if (!AK::is_within_range<OutputType>(input))
             return {};
         return static_cast<OutputType>(input);
     }
@@ -200,15 +197,15 @@ void compiletime_fail(Ts...) { }
 template<typename OutputType, typename InputType>
 ALWAYS_INLINE constexpr OutputType infallible_integer_cast(InputType input)
 {
-    if constexpr (IsEnum<InputType>) {
+    if constexpr (AK::IsEnum<InputType>) {
         return infallible_integer_cast<OutputType>(to_underlying(input));
     } else {
-        static_assert(IsIntegral<InputType>);
-        if (is_constant_evaluated()) {
-            if (!Jakt::is_within_range<OutputType>(input))
+        static_assert(AK::IsIntegral<InputType>);
+        if (AK::is_constant_evaluated()) {
+            if (!AK::is_within_range<OutputType>(input))
                 compiletime_fail("Integer cast out of range");
         } else {
-            VERIFY(Jakt::is_within_range<OutputType>(input));
+            VERIFY(AK::is_within_range<OutputType>(input));
         }
         return static_cast<OutputType>(input);
     }
@@ -217,16 +214,16 @@ ALWAYS_INLINE constexpr OutputType infallible_integer_cast(InputType input)
 template<typename OutputType, typename InputType>
 ALWAYS_INLINE constexpr OutputType as_saturated(InputType input)
 {
-    if constexpr (IsEnum<InputType>) {
+    if constexpr (AK::IsEnum<InputType>) {
         return as_saturated<OutputType>(to_underlying(input));
     } else {
-        static_assert(IsIntegral<InputType>);
-        if (!Jakt::is_within_range<OutputType>(input)) {
-            if constexpr (IsSigned<InputType>) {
+        static_assert(AK::IsIntegral<InputType>);
+        if (!AK::is_within_range<OutputType>(input)) {
+            if constexpr (AK::IsSigned<InputType>) {
                 if (input < 0)
-                    return NumericLimits<OutputType>::min();
+                    return AK::NumericLimits<OutputType>::min();
             }
-            return NumericLimits<OutputType>::max();
+            return AK::NumericLimits<OutputType>::max();
         }
         return static_cast<OutputType>(input);
     }
@@ -235,40 +232,40 @@ ALWAYS_INLINE constexpr OutputType as_saturated(InputType input)
 template<typename OutputType, typename InputType>
 ALWAYS_INLINE constexpr OutputType as_truncated(InputType input)
 {
-    if constexpr (IsEnum<InputType>) {
+    if constexpr (AK::IsEnum<InputType>) {
         return as_truncated<OutputType>(to_underlying(input));
     } else {
-        static_assert(IsIntegral<InputType>);
+        static_assert(AK::IsIntegral<InputType>);
         return static_cast<OutputType>(input);
     }
 }
 
-inline String ___jakt_get_target_triple_string()
+inline Jakt::String ___jakt_get_target_triple_string()
 {
 #ifdef __JAKT_BUILD_TARGET
-    return String(__JAKT_BUILD_TARGET);
+    return Jakt::String(__JAKT_BUILD_TARGET);
 #else
 // Pure guesswork.
 #   if defined(_WIN64)
-    return String("x86_64-pc-windows-msvc");
+    return Jakt::String("x86_64-pc-windows-msvc");
 #   elif defined(_WIN32)
-    return String("i686-pc-windows-msvc");
+    return Jakt::String("i686-pc-windows-msvc");
 #   elif defined(__linux__)
-    return String("x86_64-pc-linux-gnu");
+    return Jakt::String("x86_64-pc-linux-gnu");
 #   elif defined(__OpenBSD__) || defined(__FreeBSD__) || defined(__NetBSD__) || defined(__DragonFly__)
-    return String("x86_64-pc-bsd-unknown");
+    return Jakt::String("x86_64-pc-bsd-unknown");
 #   elif defined(__APPLE__)
 #       if defined (__arm64__)
-            return String("arm64-apple-darwin-unknown");
+            return Jakt::String("arm64-apple-darwin-unknown");
 #       else
-            return String("x86_64-apple-darwin-unknown");
+            return Jakt::String("x86_64-apple-darwin-unknown");
 #       endif
 #   elif defined(__unix__)
-    return String("x86_64-pc-unix-unknown");
+    return Jakt::String("x86_64-pc-unix-unknown");
 #   elif defined(__serenity__)
-    return String("unknown-pc-serenity-serenity");
+    return Jakt::String("unknown-pc-serenity-serenity");
 #   else
-    return String("unknown-unknown-unknown-unknown");
+    return Jakt::String("unknown-unknown-unknown-unknown");
 #   endif
 #endif
 }
@@ -284,15 +281,15 @@ struct _RemoveRefPtr<NonnullRefPtr<T>> {
 };
 
 template<typename T>
-using RemoveRefPtr = typename _RemoveRefPtr<RemoveCVReference<T>>::Type;
+using RemoveRefPtr = typename _RemoveRefPtr<AK::RemoveCVReference<T>>::Type;
 
 template<typename T>
 ALWAYS_INLINE decltype(auto) deref_if_ref_pointer(T&& value)
 {
-    if constexpr (IsSpecializationOf<RemoveCVReference<T>, NonnullRefPtr>)
-        return static_cast<CopyConst<RemoveReference<T>, RemoveRefPtr<T>>&>(*value);
+    if constexpr (AK::IsSpecializationOf<AK::RemoveCVReference<T>, NonnullRefPtr>)
+        return static_cast<AK::CopyConst<AK::RemoveReference<T>, RemoveRefPtr<T>>&>(*value);
     else
-        return static_cast<Conditional<IsRvalueReference<T>, RemoveReference<T>, T>>(value);
+        return static_cast<AK::Conditional<AK::IsRvalueReference<T>, AK::RemoveReference<T>, T>>(value);
 }
 
 }

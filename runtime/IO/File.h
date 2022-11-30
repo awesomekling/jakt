@@ -15,18 +15,18 @@
 namespace JaktInternal {
 class File final : public RefCounted<File> {
 public:
-    static ErrorOr<NonnullRefPtr<File>> open_for_reading(String path);
-    static ErrorOr<NonnullRefPtr<File>> open_for_writing(String path);
+    static ErrorOr<NonnullRefPtr<File>> open_for_reading(Jakt::String path);
+    static ErrorOr<NonnullRefPtr<File>> open_for_writing(Jakt::String path);
 
-    ErrorOr<size_t> read(Array<u8>);
-    ErrorOr<size_t> write(Array<u8>);
+    ErrorOr<size_t> read(Jakt::Array<u8>);
+    ErrorOr<size_t> write(Jakt::Array<u8>);
 
-    ErrorOr<Array<u8>> read_all();
+    ErrorOr<Jakt::Array<u8>> read_all();
 
     ~File();
 
-    static bool exists(String path);
-    static ErrorOr<String> current_executable_path();
+    static bool exists(Jakt::String path);
+    static ErrorOr<Jakt::String> current_executable_path();
 
 private:
     File();

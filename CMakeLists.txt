@@ -16,6 +16,9 @@ endif()
 
 include(GNUInstallDirs)
 
+include_directories(/home/kling/src/serenity)
+add_compile_options(-DUSING_AK_GLOBALLY=0)
+
 set(NO_SYMLINKS_DEFAULT OFF)
 if (CMAKE_HOST_WIN32)
   set(NO_SYMLINKS_DEFAULT ON)

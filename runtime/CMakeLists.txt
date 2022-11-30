@@ -1,13 +1,8 @@
 set(RUNTIME_SOURCES
     IO/File.cpp
-    Jakt/Format.cpp
-    Jakt/GenericLexer.cpp
-    Jakt/kmalloc.cpp
     Jakt/PrettyPrint.cpp
     Jakt/String.cpp
     Jakt/StringBuilder.cpp
-    Jakt/StringUtils.cpp
-    Jakt/StringView.cpp
 )
 
 add_library(jakt_runtime STATIC ${RUNTIME_SOURCES})

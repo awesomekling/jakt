@@ -1,3 +1,5 @@
+#include <Jakt/Optional.h>
+
 namespace JaktInternal {
 using namespace Jakt;
 

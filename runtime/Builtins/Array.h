@@ -1,10 +1,11 @@
 #pragma once
 
+#include <Builtins/Range.h>
 #include <Jakt/Checked.h>
 #include <Jakt/Error.h>
+#include <Jakt/NonnullRefPtr.h>
 #include <Jakt/RefCounted.h>
 #include <Jakt/RefPtr.h>
-#include <Builtins/Range.h>
 #include <initializer_list>
 #include <stdlib.h>
 
@@ -34,7 +35,7 @@ public:
         if (m_capacity >= capacity) {
             return {};
         }
-        if (Checked<size_t>::multiplication_would_overflow(capacity, sizeof(T))) {
+        if (AK::Checked<size_t>::multiplication_would_overflow(capacity, sizeof(T))) {
             return Error::from_errno(EOVERFLOW);
         }
         auto* new_elements = static_cast<T*>(malloc(capacity * sizeof(T)));
@@ -60,8 +61,8 @@ public:
             return {};
 
         // Grow the existing capacity by *at least* 25%.
-        Checked<size_t> new_capacity = m_capacity;
-        new_capacity += max(m_capacity / 4, additional_capacity_needed);
+        AK::Checked<size_t> new_capacity = m_capacity;
+        new_capacity += AK::max(m_capacity / 4, additional_capacity_needed);
 
         if (new_capacity.has_overflow())
             return Error::from_errno(EOVERFLOW);
@@ -73,7 +74,7 @@ public:
     bool contains(T const& value) const
     {
         for (size_t i = 0; i < m_size; ++i) {
-            if (Traits<T>::equals(m_elements[i], value)) {
+            if (AK::Traits<T>::equals(m_elements[i], value)) {
                 return true;
             }
         }
@@ -82,7 +83,7 @@ public:
 
     ErrorOr<void> add_size(size_t size)
     {
-        if (Checked<size_t>::addition_would_overflow(m_size, size)) {
+        if (AK::Checked<size_t>::addition_would_overflow(m_size, size)) {
             return Error::from_errno(EOVERFLOW);
         }
         TRY(resize(m_size + size));
@@ -215,7 +216,7 @@ public:
         return Array { move(storage) };
     }
 
-    static ErrorOr<Array> create_with(std::initializer_list<T> list) requires(!IsLvalueReference<T>)
+    static ErrorOr<Array> create_with(std::initializer_list<T> list) requires(!AK::IsLvalueReference<T>)
     {
         auto array = TRY(create_empty());
         TRY(array.ensure_capacity(list.size()));
@@ -267,7 +268,7 @@ public:
     T const& operator[](size_t index) const { return at(index); }
     T& operator[](size_t index) { return at(index); }
 
-    template<Integral U>
+    template<AK::Integral U>
     ArraySlice<T> operator[](Range<U> range) const { return slice_range(range.start, range.end); }
 
     ErrorOr<void> ensure_capacity(size_t capacity)
@@ -418,7 +419,7 @@ public:
     T const& operator[](size_t index) const { return at(index); }
     T& operator[](size_t index) { return at(index); }
 
-    template<Integral U>
+    template<AK::Integral U>
     ArraySlice<T> operator[](Range<U> range) const { return slice_range(range.start, range.end); }
 
     ArraySlice<T> slice_range(size_t from, size_t to) const
@@ -431,7 +432,7 @@ public:
     bool contains(T const& value) const
     {
         for (size_t i = 0; i < m_size; ++i) {
-            if (Traits<T>::equals(at(i), value)) {
+            if (AK::Traits<T>::equals(at(i), value)) {
                 return true;
             }
         }
@@ -453,7 +454,7 @@ public:
     }
 
 private:
-    RefPtr<ArrayStorage<T>> m_storage;
+    AK::RefPtr<ArrayStorage<T>> m_storage;
     size_t m_offset { 0 };
     size_t m_size { 0 };
 };

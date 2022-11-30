@@ -6,6 +6,8 @@
 
 #pragma once
 
+#include <Jakt/Variant.h>
+
 namespace Jakt {
 template<typename Value>
 struct ExplicitValue {
@@ -34,23 +36,23 @@ struct LoopContinue { };
 template<typename Value, typename Return>
 struct ExplicitValueOrControlFlow {
     template<typename U>
-    ExplicitValueOrControlFlow(ExplicitValue<U>&& v) requires(!IsVoid<Value> && !IsVoid<U>)
+    ExplicitValueOrControlFlow(ExplicitValue<U>&& v) requires(!AK::IsVoid<Value> && !AK::IsVoid<U>)
         : value(ExplicitValue<Value> { move(v.value) })
     {
     }
 
-    ExplicitValueOrControlFlow(ExplicitValue<void>&&) requires(IsVoid<Value>)
+    ExplicitValueOrControlFlow(ExplicitValue<void>&&) requires(AK::IsVoid<Value>)
         : value(ExplicitValue<void> {})
     {
     }
 
     template<typename U>
-    ExplicitValueOrControlFlow(U&& v) requires(!IsVoid<Return> && !IsSpecializationOf<U, ExplicitValue>)
+    ExplicitValueOrControlFlow(U&& v) requires(!AK::IsVoid<Return> && !AK::IsSpecializationOf<U, ExplicitValue>)
         : value(Return { forward<U>(v) })
     {
     }
 
-    ExplicitValueOrControlFlow(void) requires(IsVoid<Return>)
+    ExplicitValueOrControlFlow(void) requires(AK::IsVoid<Return>)
         : value(Empty {})
     {
     }
@@ -67,7 +69,7 @@ struct ExplicitValueOrControlFlow {
 
     bool is_return() const
     {
-        return value.template has<Conditional<IsVoid<Return>, Empty, Return>>();
+        return value.template has<AK::Conditional<AK::IsVoid<Return>, AK::Empty, Return>>();
     }
 
     bool is_loop_break() const
@@ -82,7 +84,7 @@ struct ExplicitValueOrControlFlow {
 
     Return release_return()
     {
-        if constexpr (IsVoid<Return>)
+        if constexpr (AK::IsVoid<Return>)
             return;
         else
             return move(value).template get<Return>();
@@ -90,13 +92,13 @@ struct ExplicitValueOrControlFlow {
     Value release_value()
 
     {
-        if constexpr (IsVoid<Value>)
+        if constexpr (AK::IsVoid<Value>)
             return;
         else
             return move(move(value).template get<ExplicitValue<Value>>().value);
     }
 
-    Variant<Conditional<IsVoid<Return>, Empty, Return>, ExplicitValue<Value>, LoopContinue, LoopBreak> value;
+    Jakt::Variant<AK::Conditional<AK::IsVoid<Return>, AK::Empty, Return>, ExplicitValue<Value>, LoopContinue, LoopBreak> value;
 };
 
 #define JAKT_RESOLVE_EXPLICIT_VALUE_OR_CONTROL_FLOW_RETURN_ONLY(x) ({ \

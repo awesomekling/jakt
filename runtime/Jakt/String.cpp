@@ -4,6 +4,7 @@
  * SPDX-License-Identifier: BSD-2-Clause
  */
 
+#include <AK/String.h>
 #include <Jakt/Checked.h>
 #include <Jakt/Format.h>
 #include <Jakt/Memory.h>
@@ -23,8 +24,8 @@ ErrorOr<String> String::copy(StringView view)
 String& String::operator+=(String const& other)
 {
     auto builder = MUST(StringBuilder::create());
-    MUST(builder.append(*this));
-    MUST(builder.append(other));
+    MUST(builder.append(view()));
+    MUST(builder.append(other.view()));
     *this = MUST(builder.to_string());
     return *this;
 }
@@ -32,21 +33,21 @@ String& String::operator+=(String const& other)
 String operator+(String const& a, String const& b)
 {
     auto builder = MUST(StringBuilder::create());
-    MUST(builder.append(a));
-    MUST(builder.append(b));
+    MUST(builder.append(a.view()));
+    MUST(builder.append(b.view()));
     return MUST(builder.to_string());
 }
 
-ErrorOr<String> String::vformatted(StringView fmtstr, TypeErasedFormatParams& params)
+ErrorOr<String> String::vformatted(StringView fmtstr, AK::TypeErasedFormatParams& params)
 {
-    auto builder = TRY(StringBuilder::create());
-    TRY(vformat(builder, fmtstr, params));
-    return builder.to_string();
+    AK::StringBuilder builder;
+    TRY(AK::vformat(builder, fmtstr, params));
+    return TRY(Jakt::String::copy(builder.string_view()));
 }
 
 bool String::operator==(String const& other) const
 {
-    return m_storage == other.storage() || view() == other.view();
+    return m_storage.ptr() == other.m_storage.ptr() || view() == other.view();
 }
 
 bool String::operator==(StringView other) const
@@ -68,7 +69,7 @@ ErrorOr<String> String::substring(size_t start, size_t length) const
 {
     if (!length)
         return String::empty();
-    VERIFY(!Checked<size_t>::addition_would_overflow(start, length));
+    VERIFY(!AK::Checked<size_t>::addition_would_overflow(start, length));
     VERIFY(start + length <= m_storage->length());
     return String::copy(StringView { c_string() + start, length });
 }
@@ -101,31 +102,31 @@ ErrorOr<Array<String>> String::split_limit(char separator, size_t limit, bool ke
 }
 
 template<typename T>
-Optional<T> String::to_int(TrimWhitespace trim_whitespace) const
+Optional<T> String::to_int(AK::TrimWhitespace trim_whitespace) const
 {
-    return Jakt::StringUtils::convert_to_int<T>(view(), trim_whitespace);
+    return AK::StringUtils::convert_to_int<T>(view(), trim_whitespace);
 }
 
-template Optional<i8> String::to_int(TrimWhitespace) const;
-template Optional<i16> String::to_int(TrimWhitespace) const;
-template Optional<i32> String::to_int(TrimWhitespace) const;
-template Optional<i64> String::to_int(TrimWhitespace) const;
+template Optional<i8> String::to_int(AK::TrimWhitespace) const;
+template Optional<i16> String::to_int(AK::TrimWhitespace) const;
+template Optional<i32> String::to_int(AK::TrimWhitespace) const;
+template Optional<i64> String::to_int(AK::TrimWhitespace) const;
 
 template<typename T>
-Optional<T> String::to_uint(TrimWhitespace trim_whitespace) const
+Optional<T> String::to_uint(AK::TrimWhitespace trim_whitespace) const
 {
-    return Jakt::StringUtils::convert_to_uint<T>(view(), trim_whitespace);
+    return AK::StringUtils::convert_to_uint<T>(view(), trim_whitespace);
 }
 
-template Optional<u8> String::to_uint(TrimWhitespace) const;
-template Optional<u16> String::to_uint(TrimWhitespace) const;
-template Optional<u32> String::to_uint(TrimWhitespace) const;
-template Optional<unsigned long> String::to_uint(TrimWhitespace) const;
-template Optional<unsigned long long> String::to_uint(TrimWhitespace) const;
+template Optional<u8> String::to_uint(AK::TrimWhitespace) const;
+template Optional<u16> String::to_uint(AK::TrimWhitespace) const;
+template Optional<u32> String::to_uint(AK::TrimWhitespace) const;
+template Optional<unsigned long> String::to_uint(AK::TrimWhitespace) const;
+template Optional<unsigned long long> String::to_uint(AK::TrimWhitespace) const;
 
-bool String::starts_with(StringView str, CaseSensitivity case_sensitivity) const
+bool String::starts_with(StringView str, AK::CaseSensitivity case_sensitivity) const
 {
-    return Jakt::StringUtils::starts_with(view(), str, case_sensitivity);
+    return AK::StringUtils::starts_with(view(), str, case_sensitivity);
 }
 
 bool String::starts_with(char ch) const
@@ -135,9 +136,9 @@ bool String::starts_with(char ch) const
     return c_string()[0] == ch;
 }
 
-bool String::ends_with(StringView str, CaseSensitivity case_sensitivity) const
+bool String::ends_with(StringView str, AK::CaseSensitivity case_sensitivity) const
 {
-    return Jakt::StringUtils::ends_with(view(), str, case_sensitivity);
+    return AK::StringUtils::ends_with(view(), str, case_sensitivity);
 }
 
 bool String::ends_with(char ch) const
@@ -157,39 +158,39 @@ ErrorOr<String> String::repeated(char ch, size_t count)
     return String { *storage };
 }
 
-bool String::contains(StringView needle, CaseSensitivity case_sensitivity) const
+bool String::contains(StringView needle, AK::CaseSensitivity case_sensitivity) const
 {
-    return Jakt::StringUtils::contains(view(), needle, case_sensitivity);
+    return AK::StringUtils::contains(view(), needle, case_sensitivity);
 }
 
-bool String::contains(char needle, CaseSensitivity case_sensitivity) const
+bool String::contains(char needle, AK::CaseSensitivity case_sensitivity) const
 {
-    return Jakt::StringUtils::contains(view(), StringView(&needle, 1), case_sensitivity);
+    return AK::StringUtils::contains(view(), StringView(&needle, 1), case_sensitivity);
 }
 
 bool String::equals_ignoring_case(StringView other) const
 {
-    return Jakt::StringUtils::equals_ignoring_case(view(), other);
+    return AK::StringUtils::equals_ignoring_case(view(), other);
 }
 
 bool operator<(char const* characters, String const& string)
 {
-    return string.view() > characters;
+    return string.view() > StringView(characters, strlen(characters));
 }
 
 bool operator>=(char const* characters, String const& string)
 {
-    return string.view() <= characters;
+    return string.view() <= StringView(characters, strlen(characters));
 }
 
 bool operator>(char const* characters, String const& string)
 {
-    return string.view() < characters;
+    return string.view() < StringView(characters, strlen(characters));
 }
 
 bool operator<=(char const* characters, String const& string)
 {
-    return string.view() >= characters;
+    return string.view() >= StringView(characters, strlen(characters));
 }
 
 bool String::operator==(char const* c_string) const
@@ -259,13 +260,14 @@ void StringStorage::compute_hash() const
     if (!length())
         m_hash = 0;
     else
-        m_hash = string_hash(c_string(), m_length);
+        m_hash = AK::string_hash(c_string(), m_length);
     m_has_hash = true;
 }
 
 ErrorOr<String> String::replace(StringView needle, StringView replacement, bool all_occurrences) const
 {
-    return Jakt::StringUtils::replace(*this, needle, replacement, all_occurrences);
+    auto ak_string = AK::StringUtils::replace(view(), needle, replacement, all_occurrences ? AK::ReplaceMode::All : AK::ReplaceMode::FirstOnly);
+    return TRY(Jakt::String::copy(ak_string.view()));
 }
 
 }

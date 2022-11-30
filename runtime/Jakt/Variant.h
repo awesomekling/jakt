@@ -15,14 +15,14 @@ namespace Jakt::Detail {
 
 template<typename T, typename IndexType, IndexType InitialIndex, typename... InTypes>
 struct VariantIndexOf {
-    static_assert(DependentFalse<T, IndexType, InTypes...>, "Invalid VariantIndex instantiated");
+    static_assert(AK::DependentFalse<T, IndexType, InTypes...>, "Invalid VariantIndex instantiated");
 };
 
 template<typename T, typename IndexType, IndexType InitialIndex, typename InType, typename... RestOfInTypes>
 struct VariantIndexOf<T, IndexType, InitialIndex, InType, RestOfInTypes...> {
     consteval IndexType operator()()
     {
-        if constexpr (IsSame<T, InType>)
+        if constexpr (AK::IsSame<T, InType>)
             return InitialIndex;
         else
             return VariantIndexOf<T, IndexType, InitialIndex + 1, RestOfInTypes...> {}();
@@ -121,7 +121,7 @@ template<typename... Ts>
 struct Variant
     : public Detail::VariantConstructors<Ts, Variant<Ts...>>... {
 private:
-    using IndexType = Conditional<sizeof...(Ts) < 255, u8, size_t>; // Note: size+1 reserved for internal value checks
+    using IndexType = AK::Conditional<sizeof...(Ts) < 255, u8, size_t>; // Note: size+1 reserved for internal value checks
     static constexpr IndexType invalid_index = sizeof...(Ts);
 
     template<typename T>
@@ -164,7 +164,7 @@ public:
 
     ALWAYS_INLINE Variant(Variant const& old)
 #ifdef AK_HAS_CONDITIONALLY_TRIVIAL
-        requires(!(IsTriviallyCopyConstructible<Ts> && ...))
+        requires(!(AK::IsTriviallyCopyConstructible<Ts> && ...))
 #endif
         : Detail::VariantConstructors<Ts, Variant<Ts...>>()...
         , m_data {}
@@ -179,7 +179,7 @@ public:
     //       but it will still contain the "moved-from" state of the object it previously contained.
     ALWAYS_INLINE Variant(Variant&& old)
 #ifdef AK_HAS_CONDITIONALLY_TRIVIAL
-        requires(!(IsTriviallyMoveConstructible<Ts> && ...))
+        requires(!(AK::IsTriviallyMoveConstructible<Ts> && ...))
 #endif
         : Detail::VariantConstructors<Ts, Variant<Ts...>>()...
         , m_index(old.m_index)
@@ -189,7 +189,7 @@ public:
 
     ALWAYS_INLINE ~Variant()
 #ifdef AK_HAS_CONDITIONALLY_TRIVIAL
-        requires(!(IsTriviallyDestructible<Ts> && ...))
+        requires(!(AK::IsTriviallyDestructible<Ts> && ...))
 #endif
     {
         Helper::delete_(m_index, m_data);
@@ -197,11 +197,11 @@ public:
 
     ALWAYS_INLINE Variant& operator=(Variant const& other)
 #ifdef AK_HAS_CONDITIONALLY_TRIVIAL
-        requires(!(IsTriviallyCopyConstructible<Ts> && ...) || !(IsTriviallyDestructible<Ts> && ...))
+        requires(!(AK::IsTriviallyCopyConstructible<Ts> && ...) || !(AK::IsTriviallyDestructible<Ts> && ...))
 #endif
     {
         if (this != &other) {
-            if constexpr (!(IsTriviallyDestructible<Ts> && ...)) {
+            if constexpr (!(AK::IsTriviallyDestructible<Ts> && ...)) {
                 Helper::delete_(m_index, m_data);
             }
             m_index = other.m_index;
@@ -212,11 +212,11 @@ public:
 
     ALWAYS_INLINE Variant& operator=(Variant&& other)
 #ifdef AK_HAS_CONDITIONALLY_TRIVIAL
-        requires(!(IsTriviallyMoveConstructible<Ts> && ...) || !(IsTriviallyDestructible<Ts> && ...))
+        requires(!(AK::IsTriviallyMoveConstructible<Ts> && ...) || !(AK::IsTriviallyDestructible<Ts> && ...))
 #endif
     {
         if (this != &other) {
-            if constexpr (!(IsTriviallyDestructible<Ts> && ...)) {
+            if constexpr (!(AK::IsTriviallyDestructible<Ts> && ...)) {
                 Helper::delete_(m_index, m_data);
             }
             m_index = other.m_index;
@@ -227,7 +227,7 @@ public:
 
     using Detail::VariantConstructors<Ts, Variant<Ts...>>::VariantConstructors...;
 
-    template<typename T, typename StrippedT = RemoveCVReference<T>>
+    template<typename T, typename StrippedT = AK::RemoveCVReference<T>>
     void set(T&& t) requires(can_contain<StrippedT>() && requires { StrippedT(forward<T>(t)); })
     {
         constexpr auto new_index = index_of<StrippedT>();
@@ -236,7 +236,7 @@ public:
         m_index = new_index;
     }
 
-    template<typename T, typename StrippedT = RemoveCVReference<T>>
+    template<typename T, typename StrippedT = AK::RemoveCVReference<T>>
     void set(T&& t, Detail::VariantNoClearTag) requires(can_contain<StrippedT>() && requires { StrippedT(forward<T>(t)); })
     {
         constexpr auto new_index = index_of<StrippedT>();

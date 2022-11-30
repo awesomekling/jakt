@@ -6,12 +6,4 @@
 
 #pragma once
 
-#define AK_MAKE_NONCOPYABLE(c) \
-private:                       \
-    c(c const&) = delete;      \
-    c& operator=(c const&) = delete
-
-#define AK_MAKE_NONMOVABLE(c) \
-private:                      \
-    c(c&&) = delete;          \
-    c& operator=(c&&) = delete
+#include <AK/Noncopyable.h>

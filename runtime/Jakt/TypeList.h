@@ -40,7 +40,7 @@ struct TypeWrapper {
 };
 
 template<typename List, typename F, unsigned... Indices>
-constexpr void for_each_type_impl(F&& f, IndexSequence<Indices...>)
+constexpr void for_each_type_impl(F&& f, AK::IndexSequence<Indices...>)
 {
     (forward<F>(f)(TypeWrapper<typename List::template Type<Indices>> {}), ...);
 }
@@ -48,11 +48,11 @@ constexpr void for_each_type_impl(F&& f, IndexSequence<Indices...>)
 template<typename List, typename F>
 constexpr void for_each_type(F&& f)
 {
-    for_each_type_impl<List>(forward<F>(f), MakeIndexSequence<List::size> {});
+    for_each_type_impl<List>(forward<F>(f), AK::MakeIndexSequence<List::size> {});
 }
 
 template<typename ListA, typename ListB, typename F, unsigned... Indices>
-constexpr void for_each_type_zipped_impl(F&& f, IndexSequence<Indices...>)
+constexpr void for_each_type_zipped_impl(F&& f, AK::IndexSequence<Indices...>)
 {
     (forward<F>(f)(TypeWrapper<typename ListA::template Type<Indices>> {}, TypeWrapper<typename ListB::template Type<Indices>> {}), ...);
 }
@@ -61,7 +61,7 @@ template<typename ListA, typename ListB, typename F>
 constexpr void for_each_type_zipped(F&& f)
 {
     static_assert(ListA::size == ListB::size, "Can't zip TypeLists that aren't the same size!");
-    for_each_type_zipped_impl<ListA, ListB>(forward<F>(f), MakeIndexSequence<ListA::size> {});
+    for_each_type_zipped_impl<ListA, ListB>(forward<F>(f), AK::MakeIndexSequence<ListA::size> {});
 }
 
 }

@@ -108,12 +108,12 @@ public:
     static ErrorOr<String> from_utf8(StringView);
     static ErrorOr<String> copy(StringView);
 
-    [[nodiscard]] static ErrorOr<String> vformatted(StringView fmtstr, TypeErasedFormatParams&);
+    [[nodiscard]] static ErrorOr<String> vformatted(StringView fmtstr, ::AK::TypeErasedFormatParams&);
 
     template<typename... Parameters>
     [[nodiscard]] static ErrorOr<String> formatted(StringView&& fmtstr, Parameters const&... parameters)
     {
-        VariadicFormatParams variadic_format_parameters { parameters... };
+        AK::VariadicFormatParams variadic_format_parameters { parameters... };
         return vformatted(fmtstr, variadic_format_parameters);
     }
 
@@ -122,16 +122,16 @@ public:
     static ErrorOr<String> repeated(char, size_t count);
 
     template<typename T = int>
-    Optional<T> to_int(TrimWhitespace = TrimWhitespace::Yes) const;
+    Optional<T> to_int(AK::TrimWhitespace = AK::TrimWhitespace::Yes) const;
     template<typename T = unsigned>
-    Optional<T> to_uint(TrimWhitespace = TrimWhitespace::Yes) const;
+    Optional<T> to_uint(AK::TrimWhitespace = AK::TrimWhitespace::Yes) const;
 
-    [[nodiscard]] bool is_whitespace() const { return StringUtils::is_whitespace(*this); }
+    [[nodiscard]] bool is_whitespace() const { return AK::StringUtils::is_whitespace(view()); }
 
     [[nodiscard]] bool equals_ignoring_case(StringView) const;
 
-    [[nodiscard]] bool contains(StringView, CaseSensitivity = CaseSensitivity::CaseSensitive) const;
-    [[nodiscard]] bool contains(char, CaseSensitivity = CaseSensitivity::CaseSensitive) const;
+    [[nodiscard]] bool contains(StringView, AK::CaseSensitivity = AK::CaseSensitivity::CaseSensitive) const;
+    [[nodiscard]] bool contains(char, AK::CaseSensitivity = AK::CaseSensitivity::CaseSensitive) const;
 
     ErrorOr<Array<String>> split(char separator, bool keep_empty = false) const;
     ErrorOr<Array<String>> split_limit(char separator, size_t limit, bool keep_empty) const;
@@ -142,7 +142,7 @@ public:
     [[nodiscard]] size_t length() const { return m_storage->length(); }
 
     [[nodiscard]] ErrorOr<String> replace(StringView needle, StringView replacement, bool all_occurrences = true) const;
-    
+
     // Guaranteed to include null terminator.
     [[nodiscard]] char const* c_string() const { return m_storage->c_string(); }
 
@@ -156,8 +156,8 @@ public:
         return (*m_storage)[i];
     }
 
-    [[nodiscard]] bool starts_with(StringView, CaseSensitivity = CaseSensitivity::CaseSensitive) const;
-    [[nodiscard]] bool ends_with(StringView, CaseSensitivity = CaseSensitivity::CaseSensitive) const;
+    [[nodiscard]] bool starts_with(StringView, AK::CaseSensitivity = AK::CaseSensitivity::CaseSensitive) const;
+    [[nodiscard]] bool ends_with(StringView, AK::CaseSensitivity = AK::CaseSensitivity::CaseSensitive) const;
     [[nodiscard]] bool starts_with(char) const;
     [[nodiscard]] bool ends_with(char) const;
 
@@ -189,7 +189,7 @@ public:
     }
 
     template<typename T>
-    [[nodiscard]] static ErrorOr<String> number(T value) requires IsArithmetic<T>
+    [[nodiscard]] static ErrorOr<String> number(T value) requires AK::IsArithmetic<T>
     {
         return formatted("{}", value);
     }
@@ -208,26 +208,21 @@ private:
 
 String operator+(String const&, String const&);
 
+}
+
+namespace AK {
+
 template<>
-struct Formatter<StringStorage> : Formatter<StringView> {
-    ErrorOr<void> format(FormatBuilder& builder, StringStorage const& value)
+struct Formatter<::Jakt::StringStorage> : Formatter<StringView> {
+    ErrorOr<void> format(FormatBuilder& builder, ::Jakt::StringStorage const& value)
     {
         return Formatter<StringView>::format(builder, { value.c_string(), value.length() });
     }
 };
 
 template<>
-struct Traits<String> : public GenericTraits<String> {
-    static unsigned hash(String const& s) { return s.storage().hash(); }
-};
-
-template<typename T>
-struct Formatter<NonnullRefPtr<T>> : Formatter<StringView> {
-    ErrorOr<void> format(FormatBuilder& builder, NonnullRefPtr<T> const& value)
-    {
-        auto str = TRY(Jakt::String::formatted(m_alternative_form ? "{:#}" : "{}", *value));
-        return Formatter<StringView>::format(builder, str);
-    }
+struct Traits<::Jakt::String> : public GenericTraits<::Jakt::String> {
+    static unsigned hash(::Jakt::String const& s) { return s.storage().hash(); }
 };
 
 template<typename T>
@@ -236,7 +231,7 @@ struct Formatter<Optional<T>> : Formatter<StringView> {
     {
         if (!value.has_value())
             return Formatter<StringView>::format(builder, "None");
-        auto str = TRY(Jakt::String::formatted("{}", *value));
+        auto str = TRY(::Jakt::String::formatted("{}", *value));
         return Formatter<StringView>::format(builder, str);
     }
 };
