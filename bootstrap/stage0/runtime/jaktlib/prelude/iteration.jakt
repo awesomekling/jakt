@@ -20,6 +20,7 @@ type Set implements(IntoIterator<V>) { }
 type Dictionary implements(IntoIterator<(K, V)>) { }
 
 type ArrayIterator implements(Iterable<T>) { }
+type CodePointIterator implements(Iterable<u32>) { }
 type SetIterator implements(Iterable<T>) { }
 type DictionaryIterator implements(Iterable<(K, V)>) { }
 type Range implements(Iterable<T>) { }

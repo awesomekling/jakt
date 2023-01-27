@@ -38,8 +38,14 @@ extern struct ArraySlice<T> {
     function last(this) -> T?
 }
 
+[[name=DeprecatedStringCodePointIterator]]
+extern struct CodePointIterator {
+    function next(mut this) -> u32?
+}
+
 [[name=DeprecatedString]]
 extern struct String {
+    function code_points(this) -> CodePointIterator
     function number(anon number: i64) -> String
     function split(this, anon c: c_char) -> [String]
     [[name=characters]]

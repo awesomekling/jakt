@@ -155,6 +155,7 @@ private:
 }
 
 #if USING_AK_GLOBALLY
+using AK::DeprecatedStringCodePointIterator;
 using AK::Utf8CodePointIterator;
 using AK::Utf8View;
 #endif
