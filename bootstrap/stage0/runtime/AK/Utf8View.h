@@ -143,7 +143,7 @@ public:
 
     DeprecatedStringCodePointIterator(DeprecatedString string)
         : m_string(move(string))
-        , m_it(Utf8View(string).begin())
+        , m_it(Utf8View(m_string).begin())
     {
     }
 
