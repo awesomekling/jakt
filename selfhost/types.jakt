@@ -69,7 +69,7 @@ struct GenericInferences {
         .values = checkpoint
     }
 
-    function set_from(mut this, anon checkpoint: [String:String]) {
+    function set_from(mut this, anon checkpoint: [String:String]) throws {
         for (key, value) in checkpoint {
             .values[key] = value
         }
