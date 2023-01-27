@@ -4322,8 +4322,8 @@ struct Parser {
                         return ParsedExpression::Garbage(span)
                     }
 
-                    for i in ..number.length() {
-                        let byte = number.byte_at(i)
+                    for cp in number.code_points() {
+                        let byte = as_saturated<u8>(cp)
 
                         if byte != b'_' {
                             mut offset: u8 = 0
@@ -4344,8 +4344,8 @@ struct Parser {
                         return ParsedExpression::Garbage(span)
                     }
 
-                    for i in ..number.length() {
-                        let byte = number.byte_at(i)
+                    for cp in number.code_points() {
+                        let byte = as_saturated<u8>(cp)
 
                         if byte != b'_' {
                             let digit: u64 = as_saturated(byte - b'0')
@@ -4359,8 +4359,8 @@ struct Parser {
                         return ParsedExpression::Garbage(span)
                     }
 
-                    for i in ..number.length() {
-                        let byte = number.byte_at(i)
+                    for cp in number.code_points() {
+                        let byte = as_saturated<u8>(cp)
 
                         if byte != b'_' {
                             let digit: u64 = as_saturated(byte - b'0')
@@ -4390,8 +4390,8 @@ struct Parser {
             return ParsedExpression::Garbage(span)
         }
 
-        for i in ..number.length() {
-            let byte = number.byte_at(i)
+        for cp in number.code_points() {
+            let byte = as_saturated<u8>(cp)
 
             if byte != b'_' {
                 if byte == b'.' {
