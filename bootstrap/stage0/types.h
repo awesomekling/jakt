@@ -251,6 +251,7 @@ bool is_reachable() const;
 bool never_returns() const;
 types::BlockControlFlow definitive() const;
 bool may_return() const;
+types::BlockControlFlow branch_unify_with(types::BlockControlFlow const second) const;
 types::BlockControlFlow unify_with(types::BlockControlFlow const second) const;
 };
 struct ResolvedNamespace {
@@ -696,7 +697,7 @@ explicit Module(types::ModuleId&& a_id, DeprecatedString&& a_name, JaktInternal:
 public:
 static ErrorOr<NonnullRefPtr<Module>> create(types::ModuleId id, DeprecatedString name, JaktInternal::DynamicArray<NonnullRefPtr<types::CheckedFunction>> functions, JaktInternal::DynamicArray<types::CheckedStruct> structures, JaktInternal::DynamicArray<types::CheckedEnum> enums, JaktInternal::DynamicArray<NonnullRefPtr<types::Scope>> scopes, JaktInternal::DynamicArray<NonnullRefPtr<typename types::Type>> types, JaktInternal::DynamicArray<NonnullRefPtr<types::CheckedTrait>> traits, JaktInternal::DynamicArray<NonnullRefPtr<types::CheckedVariable>> variables, JaktInternal::DynamicArray<types::ModuleId> imports, DeprecatedString resolved_import_path, bool is_root);
 
-ErrorOr<types::TypeId> new_type_variable();
+ErrorOr<types::TypeId> new_type_variable(JaktInternal::Optional<JaktInternal::DynamicArray<types::TypeId>> const implemented_traits);
 ErrorOr<types::FunctionId> add_function(NonnullRefPtr<types::CheckedFunction> const checked_function);
 bool is_prelude() const;
 ErrorOr<types::VarId> add_variable(NonnullRefPtr<types::CheckedVariable> const checked_variable);
@@ -1015,6 +1016,7 @@ ErrorOr<JaktInternal::Optional<T>> for_each_scope_accessible_unqualified_from_sc
 {
 JaktInternal::Optional<T> result = JaktInternal::OptionalNone();
 TRY((((*this).for_each_scope_accessible_unqualified_from_scope_impl(scope_id,(([&callback, &result](types::ScopeId scope_id, JaktInternal::Optional<DeprecatedString> name_override, bool is_alias) -> ErrorOr<typename utility::IterationDecision<bool>> {
+{
 JAKT_RESOLVE_EXPLICIT_VALUE_OR_CONTROL_FLOW_RETURN_ONLY(([&]() -> JaktInternal::ExplicitValueOrControlFlow<void,ErrorOr<typename utility::IterationDecision<bool>>>{
 auto&& __jakt_enum_value = JaktInternal::deref_if_ref_pointer(TRY((callback(scope_id,name_override,is_alias))));
 if (__jakt_enum_value.index() == 0 /* Break */) {
@@ -1037,13 +1039,14 @@ return JaktInternal::ExplicitValue<void>();
 }()))
 ;
 }
+}
 ))))));
 return (result);
 }
 }
 ErrorOr<JaktInternal::Optional<types::TraitId>> find_trait_in_scope(types::ScopeId const scope_id, DeprecatedString const name) const;
 NonnullRefPtr<types::CheckedTrait> get_trait(types::TraitId const id) const;
-ErrorOr<DeprecatedString> type_name(types::TypeId const type_id) const;
+ErrorOr<DeprecatedString> type_name(types::TypeId const type_id, bool const debug_mode) const;
 ErrorOr<JaktInternal::Optional<JaktInternal::DynamicArray<types::FunctionId>>> find_functions_with_name_in_scope(types::ScopeId const parent_scope_id, DeprecatedString const function_name) const;
 ErrorOr<JaktInternal::Optional<NonnullRefPtr<types::CheckedVariable>>> find_var_in_scope(types::ScopeId const scope_id, DeprecatedString const var) const;
 types::CheckedStruct get_struct(types::StructId const id) const;
@@ -1080,16 +1083,17 @@ DeprecatedString name;utility::Span name_span;JaktInternal::DynamicArray<types::
 ErrorOr<DeprecatedString> debug_description() const;
 };struct GenericInferences {
   public:
-JaktInternal::Dictionary<DeprecatedString,DeprecatedString> values;ErrorOr<void> set_all(JaktInternal::DynamicArray<types::CheckedGenericParameter> const keys, JaktInternal::DynamicArray<types::TypeId> const values);
-DeprecatedString map_name(DeprecatedString const type) const;
+JaktInternal::Dictionary<DeprecatedString,DeprecatedString> values;DeprecatedString map_name(DeprecatedString const type) const;
 GenericInferences(JaktInternal::Dictionary<DeprecatedString,DeprecatedString> a_values);
 
-JaktInternal::Dictionary<DeprecatedString,DeprecatedString> iterator() const;
 void restore(JaktInternal::Dictionary<DeprecatedString,DeprecatedString> const checkpoint);
 ErrorOr<types::TypeId> map(types::TypeId const type_id) const;
+JaktInternal::Dictionary<DeprecatedString,DeprecatedString> iterator() const;
+ErrorOr<void> set(DeprecatedString const key, DeprecatedString const value);
+ErrorOr<void> set_all(JaktInternal::DynamicArray<types::CheckedGenericParameter> const keys, JaktInternal::DynamicArray<types::TypeId> const values);
+ErrorOr<void> set_from(JaktInternal::Dictionary<DeprecatedString,DeprecatedString> const checkpoint);
 JaktInternal::Optional<DeprecatedString> get(DeprecatedString const key) const;
 ErrorOr<JaktInternal::Dictionary<DeprecatedString,DeprecatedString>> perform_checkpoint(bool const reset);
-ErrorOr<void> set(DeprecatedString const key, DeprecatedString const value);
 ErrorOr<DeprecatedString> debug_description() const;
 };class CheckedTrait : public RefCounted<CheckedTrait>, public Weakable<CheckedTrait> {
   public:
@@ -1693,12 +1697,20 @@ name{ forward<_MemberT0>(member_0)},
 span{ forward<_MemberT1>(member_1)}
 {}
 };
+struct AllByReference {
+utility::Span span;
+template<typename _MemberT0>
+AllByReference(_MemberT0&& member_0):
+span{ forward<_MemberT0>(member_0)}
+{}
+};
 }
-struct CheckedCapture : public Variant<CheckedCapture_Details::ByValue, CheckedCapture_Details::ByReference, CheckedCapture_Details::ByMutableReference> {
-using Variant<CheckedCapture_Details::ByValue, CheckedCapture_Details::ByReference, CheckedCapture_Details::ByMutableReference>::Variant;
+struct CheckedCapture : public Variant<CheckedCapture_Details::ByValue, CheckedCapture_Details::ByReference, CheckedCapture_Details::ByMutableReference, CheckedCapture_Details::AllByReference> {
+using Variant<CheckedCapture_Details::ByValue, CheckedCapture_Details::ByReference, CheckedCapture_Details::ByMutableReference, CheckedCapture_Details::AllByReference>::Variant;
     using ByValue = CheckedCapture_Details::ByValue;
     using ByReference = CheckedCapture_Details::ByReference;
     using ByMutableReference = CheckedCapture_Details::ByMutableReference;
+    using AllByReference = CheckedCapture_Details::AllByReference;
 ErrorOr<DeprecatedString> debug_description() const;
 DeprecatedString name() const;
 utility::Span span() const;
@@ -1711,24 +1723,30 @@ TraitId(types::ModuleId a_module, size_t a_id);
 ErrorOr<DeprecatedString> debug_description() const;
 };namespace StructLikeId_Details {
 struct Struct{
+JaktInternal::Optional<JaktInternal::DynamicArray<types::TypeId>> generic_arguments;
 types::StructId value;
-template<typename _MemberT0>
-Struct(_MemberT0&& member_0):
-value{ forward<_MemberT0>(member_0)}
+template<typename _MemberT0, typename _MemberT1>
+Struct(_MemberT0&& member_0, _MemberT1&& member_1):
+generic_arguments{ forward<_MemberT0>(member_0)},
+value{ forward<_MemberT1>(member_1)}
 {}
 };
 struct Enum{
+JaktInternal::Optional<JaktInternal::DynamicArray<types::TypeId>> generic_arguments;
 types::EnumId value;
-template<typename _MemberT0>
-Enum(_MemberT0&& member_0):
-value{ forward<_MemberT0>(member_0)}
+template<typename _MemberT0, typename _MemberT1>
+Enum(_MemberT0&& member_0, _MemberT1&& member_1):
+generic_arguments{ forward<_MemberT0>(member_0)},
+value{ forward<_MemberT1>(member_1)}
 {}
 };
 struct Trait{
+JaktInternal::Optional<JaktInternal::DynamicArray<types::TypeId>> generic_arguments;
 types::TraitId value;
-template<typename _MemberT0>
-Trait(_MemberT0&& member_0):
-value{ forward<_MemberT0>(member_0)}
+template<typename _MemberT0, typename _MemberT1>
+Trait(_MemberT0&& member_0, _MemberT1&& member_1):
+generic_arguments{ forward<_MemberT0>(member_0)},
+value{ forward<_MemberT1>(member_1)}
 {}
 };
 }
@@ -1738,6 +1756,13 @@ using Variant<StructLikeId_Details::Struct, StructLikeId_Details::Enum, StructLi
     using Enum = StructLikeId_Details::Enum;
     using Trait = StructLikeId_Details::Trait;
 ErrorOr<DeprecatedString> debug_description() const;
+JaktInternal::Optional<JaktInternal::DynamicArray<types::TypeId>> const& generic_arguments() const { switch(this->index()) {case 0 /* Struct */: return this->template get<StructLikeId::Struct>().generic_arguments;
+case 1 /* Enum */: return this->template get<StructLikeId::Enum>().generic_arguments;
+case 2 /* Trait */: return this->template get<StructLikeId::Trait>().generic_arguments;
+default: VERIFY_NOT_REACHED();
+}
+}
+ErrorOr<JaktInternal::DynamicArray<types::TypeId>> generic_parameters(NonnullRefPtr<types::CheckedProgram> const& program) const;
 };
 namespace BuiltinType_Details {
 struct Void {
@@ -1842,11 +1867,13 @@ struct Unknown {
 };
 struct Never {
 };
-struct TypeVariable{
-DeprecatedString value;
-template<typename _MemberT0>
-TypeVariable(_MemberT0&& member_0):
-value{ forward<_MemberT0>(member_0)}
+struct TypeVariable {
+DeprecatedString name;
+JaktInternal::DynamicArray<types::TypeId> trait_implementations;
+template<typename _MemberT0, typename _MemberT1>
+TypeVariable(_MemberT0&& member_0, _MemberT1&& member_1):
+name{ forward<_MemberT0>(member_0)},
+trait_implementations{ forward<_MemberT1>(member_1)}
 {}
 };
 struct GenericInstance {

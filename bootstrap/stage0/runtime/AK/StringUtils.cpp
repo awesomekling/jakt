@@ -7,7 +7,6 @@
 
 #include <AK/CharacterTypes.h>
 #include <AK/MemMem.h>
-#include <AK/Memory.h>
 #include <AK/Optional.h>
 #include <AK/String.h>
 #include <AK/StringBuilder.h>
@@ -15,9 +14,12 @@
 #include <AK/StringView.h>
 #include <AK/Vector.h>
 
-#ifndef KERNEL
+#ifdef KERNEL
+#    include <Kernel/StdLib.h>
+#else
 #    include <AK/DeprecatedString.h>
 #    include <AK/FloatingPointStringConversions.h>
+#    include <string.h>
 #endif
 
 namespace AK {
@@ -62,8 +64,11 @@ bool matches(StringView str, StringView mask, CaseSensitivity case_sensitivity, 
             record_span(string_ptr - string_start, 1);
             break;
         case '\\':
-            ++mask_ptr;
-            break;
+            // if backslash is last character in mask, just treat it as an exact match
+            // otherwise use it as escape for next character
+            if (mask_ptr + 1 < mask_end)
+                ++mask_ptr;
+            [[fallthrough]];
         default:
             auto p = *mask_ptr;
             auto ch = *string_ptr;
@@ -157,8 +162,6 @@ template Optional<u16> convert_to_uint(StringView str, TrimWhitespace);
 template Optional<u32> convert_to_uint(StringView str, TrimWhitespace);
 template Optional<unsigned long> convert_to_uint(StringView str, TrimWhitespace);
 template Optional<unsigned long long> convert_to_uint(StringView str, TrimWhitespace);
-template Optional<long> convert_to_uint(StringView str, TrimWhitespace);
-template Optional<long long> convert_to_uint(StringView str, TrimWhitespace);
 
 template<typename T>
 Optional<T> convert_to_uint_from_hex(StringView str, TrimWhitespace trim_whitespace)
@@ -404,6 +407,17 @@ Optional<size_t> find_last(StringView haystack, char needle)
         if (haystack[i - 1] == needle)
             return i - 1;
     }
+    return {};
+}
+
+Optional<size_t> find_last(StringView haystack, StringView needle)
+{
+    for (size_t i = haystack.length(); i > 0; --i) {
+        auto value = StringUtils::find(haystack, needle, i - 1);
+        if (value.has_value())
+            return value;
+    }
+
     return {};
 }
 

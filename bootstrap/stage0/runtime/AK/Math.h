@@ -79,7 +79,7 @@ constexpr T fmod(T x, T y)
 {
     CONSTEXPR_STATE(fmod, x, y);
 
-#if ARCH(I386) || ARCH(X86_64)
+#if ARCH(X86_64)
     u16 fpu_status;
     do {
         asm(
@@ -98,7 +98,7 @@ constexpr T remainder(T x, T y)
 {
     CONSTEXPR_STATE(remainder, x, y);
 
-#if ARCH(I386) || ARCH(X86_64)
+#if ARCH(X86_64)
     u16 fpu_status;
     do {
         asm(
@@ -122,7 +122,21 @@ constexpr T sqrt(T x)
 {
     CONSTEXPR_STATE(sqrt, x);
 
-#if ARCH(I386) || ARCH(X86_64)
+#if ARCH(X86_64)
+    if constexpr (IsSame<T, float>) {
+        float res;
+        asm("sqrtss %1, %0"
+            : "=x"(res)
+            : "x"(x));
+        return res;
+    }
+    if constexpr (IsSame<T, double>) {
+        double res;
+        asm("sqrtsd %1, %0"
+            : "=x"(res)
+            : "x"(x));
+        return res;
+    }
     T res;
     asm("fsqrt"
         : "=t"(res)
@@ -140,52 +154,17 @@ constexpr T rsqrt(T x)
 {
 #if ARCH(AARCH64)
     AARCH64_INSTRUCTION(frsqrte, x);
+#elif ARCH(X86_64)
+    if constexpr (IsSame<T, float>) {
+        float res;
+        asm("rsqrtss %1, %0"
+            : "=x"(res)
+            : "x"(x));
+        return res;
+    }
 #endif
     return (T)1. / sqrt(x);
 }
-
-#ifdef __SSE__
-template<>
-constexpr float sqrt(float x)
-{
-    if (is_constant_evaluated())
-        return __builtin_sqrtf(x);
-
-    float res;
-    asm("sqrtss %1, %0"
-        : "=x"(res)
-        : "x"(x));
-    return res;
-}
-
-#    ifdef __SSE2__
-template<>
-constexpr double sqrt(double x)
-{
-    if (is_constant_evaluated())
-        return __builtin_sqrt(x);
-
-    double res;
-    asm("sqrtsd %1, %0"
-        : "=x"(res)
-        : "x"(x));
-    return res;
-}
-#    endif
-
-template<>
-constexpr float rsqrt(float x)
-{
-    if (is_constant_evaluated())
-        return 1.f / __builtin_sqrtf(x);
-
-    float res;
-    asm("rsqrtss %1, %0"
-        : "=x"(res)
-        : "x"(x));
-    return res;
-}
-#endif
 
 template<FloatingPoint T>
 constexpr T cbrt(T x)
@@ -232,7 +211,7 @@ constexpr T fabs(T x)
 {
     if (is_constant_evaluated())
         return x < 0 ? -x : x;
-#if ARCH(I386) || ARCH(X86_64)
+#if ARCH(X86_64)
     asm(
         "fabs"
         : "+t"(x));
@@ -257,7 +236,7 @@ constexpr T sin(T angle)
 {
     CONSTEXPR_STATE(sin, angle);
 
-#if ARCH(I386) || ARCH(X86_64)
+#if ARCH(X86_64)
     T ret;
     asm(
         "fsin"
@@ -274,7 +253,7 @@ constexpr T cos(T angle)
 {
     CONSTEXPR_STATE(cos, angle);
 
-#if ARCH(I386) || ARCH(X86_64)
+#if ARCH(X86_64)
     T ret;
     asm(
         "fcos"
@@ -294,7 +273,7 @@ constexpr void sincos(T angle, T& sin_val, T& cos_val)
         cos_val = cos(angle);
         return;
     }
-#if ARCH(I386) || ARCH(X86_64)
+#if ARCH(X86_64)
     asm(
         "fsincos"
         : "=t"(cos_val), "=u"(sin_val)
@@ -310,7 +289,7 @@ constexpr T tan(T angle)
 {
     CONSTEXPR_STATE(tan, angle);
 
-#if ARCH(I386) || ARCH(X86_64)
+#if ARCH(X86_64)
     T ret, one;
     asm(
         "fptan"
@@ -328,7 +307,7 @@ constexpr T atan(T value)
 {
     CONSTEXPR_STATE(atan, value);
 
-#if ARCH(I386) || ARCH(X86_64)
+#if ARCH(X86_64)
     T ret;
     asm(
         "fld1\n"
@@ -384,7 +363,7 @@ constexpr T atan2(T y, T x)
 {
     CONSTEXPR_STATE(atan2, y, x);
 
-#if ARCH(I386) || ARCH(X86_64)
+#if ARCH(X86_64)
     T ret;
     asm("fpatan"
         : "=t"(ret)
@@ -415,7 +394,7 @@ constexpr T log(T x)
 {
     CONSTEXPR_STATE(log, x);
 
-#if ARCH(I386) || ARCH(X86_64)
+#if ARCH(X86_64)
     T ret;
     asm(
         "fldln2\n"
@@ -434,7 +413,7 @@ constexpr T log2(T x)
 {
     CONSTEXPR_STATE(log2, x);
 
-#if ARCH(I386) || ARCH(X86_64)
+#if ARCH(X86_64)
     T ret;
     asm(
         "fld1\n"
@@ -453,7 +432,7 @@ constexpr T log10(T x)
 {
     CONSTEXPR_STATE(log10, x);
 
-#if ARCH(I386) || ARCH(X86_64)
+#if ARCH(X86_64)
     T ret;
     asm(
         "fldlg2\n"
@@ -472,7 +451,7 @@ constexpr T exp(T exponent)
 {
     CONSTEXPR_STATE(exp, exponent);
 
-#if ARCH(I386) || ARCH(X86_64)
+#if ARCH(X86_64)
     T res;
     asm("fldl2e\n"
         "fmulp\n"
@@ -496,7 +475,7 @@ constexpr T exp2(T exponent)
 {
     CONSTEXPR_STATE(exp2, exponent);
 
-#if ARCH(I386) || ARCH(X86_64)
+#if ARCH(X86_64)
     T res;
     asm("fld1\n"
         "fld %%st(1)\n"
@@ -583,9 +562,12 @@ using Hyperbolic::sinh;
 using Hyperbolic::tanh;
 
 template<Integral I, FloatingPoint P>
-ALWAYS_INLINE I round_to(P value)
+ALWAYS_INLINE I round_to(P value);
+
+#if ARCH(X86_64)
+template<Integral I>
+ALWAYS_INLINE I round_to(long double value)
 {
-#if ARCH(I386) || ARCH(X86_64)
     // Note: fistps outputs into a signed integer location (i16, i32, i64),
     //       so lets be nice and tell the compiler that.
     Conditional<sizeof(I) >= sizeof(i16), MakeSigned<I>, i16> ret;
@@ -606,95 +588,21 @@ ALWAYS_INLINE I round_to(P value)
             : "st");
     }
     return static_cast<I>(ret);
-#elif ARCH(AARCH64)
-    if constexpr (IsSigned<I>) {
-        if constexpr (sizeof(I) <= sizeof(i32)) {
-            i32 res;
-            if constexpr (IsSame<P, float>) {
-                asm("fcvtns %w0, %s1"
-                    : "=r"(res)
-                    : "w"(value));
-            } else if constexpr (IsSame<P, double>) {
-                asm("fcvtns %w0, %d1"
-                    : "=r"(res)
-                    : "w"(value));
-            } else if constexpr (IsSame<P, long double>) {
-                TODO();
-            }
-            return static_cast<I>(res);
-        }
-        // either long or long long aka i64
-        i64 res;
-        if constexpr (IsSame<P, float>) {
-            asm("fcvtns %0, %s1"
-                : "=r"(res)
-                : "w"(value));
-        } else if constexpr (IsSame<P, double>) {
-            asm("fcvtns %0, %d1"
-                : "=r"(res)
-                : "w"(value));
-        } else if constexpr (IsSame<P, long double>) {
-            TODO();
-        }
-        return static_cast<I>(res);
-    }
-
-    if constexpr (sizeof(I) <= sizeof(u32)) {
-        u32 res;
-        if constexpr (IsSame<P, float>) {
-            asm("fcvtnu %w0, %s1"
-                : "=r"(res)
-                : "w"(value));
-        } else if constexpr (IsSame<P, double>) {
-            asm("fcvtnu %w0, %d1"
-                : "=r"(res)
-                : "w"(value));
-        } else if constexpr (IsSame<P, long double>) {
-            TODO();
-        }
-        return static_cast<I>(res);
-    }
-
-    // either unsigned long or unsigned long long aka u64
-    u64 res;
-    if constexpr (IsSame<P, float>) {
-        asm("fcvtnu %0, %s1"
-            : "=r"(res)
-            : "w"(value));
-    } else if constexpr (IsSame<P, double>) {
-        asm("fcvtnu %0, %d1"
-            : "=r"(res)
-            : "w"(value));
-    } else if constexpr (IsSame<P, long double>) {
-        TODO();
-    }
-    return static_cast<I>(res);
-#else
-    if constexpr (IsSame<P, long double>)
-        return static_cast<I>(__builtin_llrintl(value));
-    if constexpr (IsSame<P, double>)
-        return static_cast<I>(__builtin_llrint(value));
-    if constexpr (IsSame<P, float>)
-        return static_cast<I>(__builtin_llrintf(value));
-#endif
 }
 
-#ifdef __SSE__
 template<Integral I>
 ALWAYS_INLINE I round_to(float value)
 {
-    if constexpr (sizeof(I) == sizeof(i64)) {
-        // Note: Outputting into 64-bit registers or memory locations requires the
-        //       REX prefix, so we have to fall back to long doubles on i686
-#    if ARCH(X86_64)
+    // FIXME: round_to<u64> might will cause issues, aka the indefinite value being set,
+    //        if the value surpasses the i64 limit, even if the result could fit into an u64
+    //        To solve this we would either need to detect that value or do a range check and
+    //        then do a more specialized conversion, which might include a division (which is expensive)
+    if constexpr (sizeof(I) == sizeof(i64) || IsSame<I, u32>) {
         i64 ret;
         asm("cvtss2si %1, %0"
             : "=r"(ret)
             : "xm"(value));
         return static_cast<I>(ret);
-#    else
-        return round_to<I, long double>(value);
-#    endif
     }
     i32 ret;
     asm("cvtss2si %1, %0"
@@ -702,29 +610,107 @@ ALWAYS_INLINE I round_to(float value)
         : "xm"(value));
     return static_cast<I>(ret);
 }
-#endif
-#ifdef __SSE2__
+
 template<Integral I>
 ALWAYS_INLINE I round_to(double value)
 {
-    if constexpr (sizeof(I) == sizeof(i64)) {
-        // Note: Outputting into 64-bit registers or memory locations requires the
-        //       REX prefix, so we have to fall back to long doubles on i686
-#    if ARCH(X86_64)
+    // FIXME: round_to<u64> might will cause issues, aka the indefinite value being set,
+    //        if the value surpasses the i64 limit, even if the result could fit into an u64
+    //        To solve this we would either need to detect that value or do a range check and
+    //        then do a more specialized conversion, which might include a division (which is expensive)
+    if constexpr (sizeof(I) == sizeof(i64) || IsSame<I, u32>) {
         i64 ret;
         asm("cvtsd2si %1, %0"
             : "=r"(ret)
             : "xm"(value));
         return static_cast<I>(ret);
-#    else
-        return round_to<I, long double>(value);
-#    endif
     }
     i32 ret;
     asm("cvtsd2si %1, %0"
         : "=r"(ret)
         : "xm"(value));
     return static_cast<I>(ret);
+}
+
+#elif ARCH(AARCH64)
+template<Signed I>
+ALWAYS_INLINE I round_to(float value)
+{
+    if constexpr (sizeof(I) <= sizeof(u32)) {
+        i32 res;
+        asm("fcvtns %w0, %s1"
+            : "=r"(res)
+            : "w"(value));
+        return static_cast<I>(res);
+    }
+    i64 res;
+    asm("fcvtns %0, %s1"
+        : "=r"(res)
+        : "w"(value));
+    return static_cast<I>(res);
+}
+
+template<Signed I>
+ALWAYS_INLINE I round_to(double value)
+{
+    if constexpr (sizeof(I) <= sizeof(u32)) {
+        i32 res;
+        asm("fcvtns %w0, %d1"
+            : "=r"(res)
+            : "w"(value));
+        return static_cast<I>(res);
+    }
+    i64 res;
+    asm("fcvtns %0, %d1"
+        : "=r"(res)
+        : "w"(value));
+    return static_cast<I>(res);
+}
+
+template<Unsigned U>
+ALWAYS_INLINE U round_to(float value)
+{
+    if constexpr (sizeof(U) <= sizeof(u32)) {
+        u32 res;
+        asm("fcvtnu %w0, %s1"
+            : "=r"(res)
+            : "w"(value));
+        return static_cast<U>(res);
+    }
+    i64 res;
+    asm("fcvtnu %0, %s1"
+        : "=r"(res)
+        : "w"(value));
+    return static_cast<U>(res);
+}
+
+template<Unsigned U>
+ALWAYS_INLINE U round_to(double value)
+{
+    if constexpr (sizeof(U) <= sizeof(u32)) {
+        u32 res;
+        asm("fcvtns %w0, %d1"
+            : "=r"(res)
+            : "w"(value));
+        return static_cast<U>(res);
+    }
+    i64 res;
+    asm("fcvtns %0, %d1"
+        : "=r"(res)
+        : "w"(value));
+    return static_cast<U>(res);
+}
+
+#else
+template<Integral I, FloatingPoint P>
+ALWAYS_INLINE I round_to(P value)
+{
+    if constexpr (IsSame<P, long double>)
+        return static_cast<I>(__builtin_llrintl(value));
+    if constexpr (IsSame<P, double>)
+        return static_cast<I>(__builtin_llrint(value));
+    if constexpr (IsSame<P, float>)
+        return static_cast<I>(__builtin_llrintf(value));
 }
 #endif
 

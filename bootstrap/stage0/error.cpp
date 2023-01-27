@@ -44,7 +44,7 @@ TRY((((output).push((Tuple{start, idx})))));
 }
 ({auto& _jakt_ref = idx;_jakt_ref = JaktInternal::checked_add<size_t>(_jakt_ref, static_cast<size_t>(1ULL));});
 }
-if ((start < idx)){
+if ((start <= idx)){
 TRY((((output).push((Tuple{start, idx})))));
 }
 return (output);
@@ -59,18 +59,20 @@ return {};
 }
 JaktInternal::DynamicArray<u8> const file_contents = (contents.value());
 JaktInternal::DynamicArray<JaktInternal::Tuple<size_t,size_t>> const line_spans = TRY((error::gather_line_spans(file_contents)));
-size_t line_index = static_cast<size_t>(1ULL);
+size_t line_index = static_cast<size_t>(0ULL);
+size_t error_start_index = static_cast<size_t>(0ULL);
 size_t largest_line_number = static_cast<size_t>(0ULL);
 while ((line_index < ((line_spans).size()))){
 if (((((span).start) >= ((((line_spans)[line_index])).template get<0>())) && (((span).start) <= ((((line_spans)[line_index])).template get<1>())))){
+(error_start_index = line_index);
+}
+if (((((span).end) >= ((((line_spans)[line_index])).template get<0>())) && (((span).end) <= ((((line_spans)[line_index])).template get<1>())))){
 (largest_line_number = (JaktInternal::checked_add<size_t>(line_index,static_cast<size_t>(2ULL))));
 }
 (++(line_index));
 }
 size_t const width = ((TRY((__jakt_format(Jakt::DeprecatedString("{}"sv),largest_line_number)))).length());
-(line_index = static_cast<size_t>(1ULL));
-while ((line_index < ((line_spans).size()))){
-if (((((span).start) >= ((((line_spans)[line_index])).template get<0>())) && (((span).start) <= ((((line_spans)[line_index])).template get<1>())))){
+(line_index = error_start_index);
 size_t const column_index = (JaktInternal::checked_sub<size_t>(((span).start),((((line_spans)[line_index])).template get<0>())));
 {
 JaktInternal::Range<size_t> _magic = (JaktInternal::Range<size_t>{static_cast<size_t>(static_cast<size_t>(0ULL)),static_cast<size_t>((JaktInternal::checked_add<size_t>(width,static_cast<size_t>(2ULL))))});
@@ -133,12 +135,6 @@ warnln(Jakt::DeprecatedString("\u001b[{}m╰─ {}\u001b[0m"sv),TRY((((severity)
 (++(line_index));
 if ((line_index < ((line_spans).size()))){
 TRY((error::print_source_line(severity,file_contents,((line_spans)[line_index]),span,(JaktInternal::checked_add<size_t>(line_index,static_cast<size_t>(1ULL))),largest_line_number)));
-}
-}
-else {
-(++(line_index));
-}
-
 }
 warn(Jakt::DeprecatedString("\u001b[0m"sv));
 {

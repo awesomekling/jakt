@@ -130,6 +130,28 @@ private:
     mutable bool m_have_length { false };
 };
 
+class DeprecatedStringCodePointIterator {
+public:
+    Optional<u32> next()
+    {
+        if (m_it.done())
+            return {};
+        auto value = *m_it;
+        ++m_it;
+        return value;
+    }
+
+    DeprecatedStringCodePointIterator(DeprecatedString string)
+        : m_string(move(string))
+        , m_it(Utf8View(string).begin())
+    {
+    }
+
+private:
+    DeprecatedString m_string;
+    Utf8CodePointIterator m_it;
+};
+
 }
 
 #if USING_AK_GLOBALLY

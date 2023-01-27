@@ -6,6 +6,8 @@
 
 #pragma once
 
+#include <AK/DefaultDelete.h>
+#include <AK/SinglyLinkedListSizePolicy.h>
 #include <AK/Types.h>
 
 namespace AK {
@@ -17,20 +19,22 @@ class ByteBuffer;
 
 class Bitmap;
 using ByteBuffer = Detail::ByteBuffer<32>;
+class CircularBuffer;
 class Error;
+class FlyString;
 class GenericLexer;
 class IPv4Address;
 class JsonArray;
 class JsonObject;
 class JsonValue;
 class StackInfo;
+class DeprecatedFlyString;
 class DeprecatedString;
 class StringBuilder;
 class StringImpl;
 class StringView;
 class Time;
 class URL;
-class FlyString;
 class String;
 class Utf16View;
 class Utf32View;
@@ -38,14 +42,8 @@ class Utf8CodePointIterator;
 class Utf8View;
 class InputStream;
 class InputMemoryStream;
-class DuplexMemoryStream;
 class OutputStream;
-class InputBitStream;
-class OutputBitStream;
 class OutputMemoryStream;
-
-template<size_t Capacity>
-class CircularDuplexStream;
 
 template<typename T>
 class Span;
@@ -62,7 +60,7 @@ using Bytes = Span<u8>;
 template<typename T, AK::MemoryOrder DefaultMemoryOrder>
 class Atomic;
 
-template<typename T>
+template<typename T, typename TSizeCalculationPolicy = DefaultSizeCalculationPolicy>
 class SinglyLinkedList;
 
 template<typename T>
@@ -133,7 +131,7 @@ class LockRefPtr;
 template<typename T>
 class RefPtr;
 
-template<typename T>
+template<typename T, typename TDeleter = DefaultDelete<T>>
 class OwnPtr;
 
 template<typename T>
@@ -154,21 +152,19 @@ using AK::Badge;
 using AK::Bitmap;
 using AK::ByteBuffer;
 using AK::Bytes;
-using AK::CircularDuplexStream;
+using AK::CircularBuffer;
 using AK::CircularQueue;
+using AK::DeprecatedFlyString;
 using AK::DeprecatedString;
 using AK::DoublyLinkedList;
-using AK::DuplexMemoryStream;
 using AK::Error;
 using AK::ErrorOr;
 using AK::FixedArray;
 using AK::FixedPoint;
-using AK::FlyString;
 using AK::Function;
 using AK::GenericLexer;
 using AK::HashMap;
 using AK::HashTable;
-using AK::InputBitStream;
 using AK::InputMemoryStream;
 using AK::InputStream;
 using AK::IPv4Address;
@@ -180,7 +176,6 @@ using AK::NonnullOwnPtrVector;
 using AK::NonnullRefPtr;
 using AK::NonnullRefPtrVector;
 using AK::Optional;
-using AK::OutputBitStream;
 using AK::OutputMemoryStream;
 using AK::OutputStream;
 using AK::OwnPtr;

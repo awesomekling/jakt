@@ -50,14 +50,14 @@ public:
 #ifndef KERNEL
     StringView(String const&);
     StringView(DeprecatedString const&);
-    StringView(FlyString const&);
+    StringView(DeprecatedFlyString const&);
 #endif
 
     explicit StringView(ByteBuffer&&) = delete;
 #ifndef KERNEL
     explicit StringView(String&&) = delete;
     explicit StringView(DeprecatedString&&) = delete;
-    explicit StringView(FlyString&&) = delete;
+    explicit StringView(DeprecatedFlyString&&) = delete;
 #endif
 
     [[nodiscard]] constexpr bool is_null() const
@@ -116,8 +116,8 @@ public:
     }
     [[nodiscard]] Optional<size_t> find(StringView needle, size_t start = 0) const { return StringUtils::find(*this, needle, start); }
     [[nodiscard]] Optional<size_t> find_last(char needle) const { return StringUtils::find_last(*this, needle); }
+    [[nodiscard]] Optional<size_t> find_last(StringView needle) const { return StringUtils::find_last(*this, needle); }
     [[nodiscard]] Optional<size_t> find_last_not(char needle) const { return StringUtils::find_last_not(*this, needle); }
-    // FIXME: Implement find_last(StringView) for API symmetry.
 
     [[nodiscard]] Vector<size_t> find_all(StringView needle) const;
 
@@ -348,6 +348,7 @@ struct CaseInsensitiveStringViewTraits : public Traits<StringView> {
             return 0;
         return case_insensitive_string_hash(s.characters_without_null_termination(), s.length());
     }
+    static bool equals(StringView const& a, StringView const& b) { return a.equals_ignoring_case(b); }
 };
 
 }

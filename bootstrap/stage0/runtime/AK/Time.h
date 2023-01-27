@@ -11,12 +11,11 @@
 #include <AK/Platform.h>
 #include <AK/Types.h>
 
-// Kernel and Userspace pull in the definitions from different places.
-// Avoid trying to figure out which one.
-struct timeval;
-struct timespec;
-
-#if defined(AK_OS_WINDOWS)
+#if defined(AK_OS_SERENITY) && defined(KERNEL)
+#    include <Kernel/API/POSIX/sys/time.h>
+#    include <Kernel/API/POSIX/time.h>
+#else
+#    include <sys/time.h>
 #    include <time.h>
 #endif
 
@@ -66,17 +65,50 @@ constexpr int days_in_year(int year)
     return 365 + (is_leap_year(year) ? 1 : 0);
 }
 
-constexpr int years_to_days_since_epoch(int year)
+namespace Detail {
+// Integer division rounding towards negative infinity.
+// TODO: This feels like there should be an easier way to do this.
+template<int divisor>
+constexpr i64 floor_div_by(i64 dividend)
 {
-    int days = 0;
-    for (int current_year = 1970; current_year < year; ++current_year)
-        days += days_in_year(current_year);
-    for (int current_year = year; current_year < 1970; ++current_year)
-        days -= days_in_year(current_year);
-    return days;
+    static_assert(divisor > 1);
+    int is_negative = dividend < 0;
+    return (dividend + is_negative) / divisor - is_negative;
 }
 
-constexpr int days_since_epoch(int year, int month, int day)
+// Counts how many integers n are in the interval [begin, end) with n % positive_mod == 0.
+// NOTE: "end" is not considered to be part of the range, hence "[begin, end)".
+template<int positive_mod>
+constexpr i64 mod_zeros_in_range(i64 begin, i64 end)
+{
+    return floor_div_by<positive_mod>(end - 1) - floor_div_by<positive_mod>(begin - 1);
+}
+}
+
+constexpr i64 years_to_days_since_epoch(int year)
+{
+    int begin_year, end_year, leap_sign;
+    if (year < 1970) {
+        begin_year = year;
+        end_year = 1970;
+        leap_sign = -1;
+    } else {
+        begin_year = 1970;
+        end_year = year;
+        leap_sign = +1;
+    }
+    i64 year_i64 = year;
+    // This duplicates the logic of 'is_leap_year', with the advantage of not needing any loops.
+    // Given that the definition of leap years is not expected to change, this should be a good trade-off.
+    i64 days = 365 * (year_i64 - 1970);
+    i64 extra_leap_days = 0;
+    extra_leap_days += Detail::mod_zeros_in_range<4>(begin_year, end_year);
+    extra_leap_days -= Detail::mod_zeros_in_range<100>(begin_year, end_year);
+    extra_leap_days += Detail::mod_zeros_in_range<400>(begin_year, end_year);
+    return days + extra_leap_days * leap_sign;
+}
+
+constexpr i64 days_since_epoch(int year, int month, int day)
 {
     return years_to_days_since_epoch(year) + day_of_year(year, month, day);
 }
@@ -221,15 +253,24 @@ public:
     [[nodiscard]] bool is_zero() const { return (m_seconds == 0) && (m_nanoseconds == 0); }
     [[nodiscard]] bool is_negative() const { return m_seconds < 0; }
 
-    bool operator==(Time const& other) const { return this->m_seconds == other.m_seconds && this->m_nanoseconds == other.m_nanoseconds; }
     Time operator+(Time const& other) const;
     Time& operator+=(Time const& other);
     Time operator-(Time const& other) const;
     Time& operator-=(Time const& other);
-    bool operator<(Time const& other) const;
-    bool operator<=(Time const& other) const;
-    bool operator>(Time const& other) const;
-    bool operator>=(Time const& other) const;
+
+    constexpr bool operator==(Time const& other) const = default;
+    constexpr int operator<=>(Time const& other) const
+    {
+        if (int cmp = (m_seconds > other.m_seconds ? 1 : m_seconds < other.m_seconds ? -1
+                                                                                     : 0);
+            cmp != 0)
+            return cmp;
+        if (int cmp = (m_nanoseconds > other.m_nanoseconds ? 1 : m_nanoseconds < other.m_nanoseconds ? -1
+                                                                                                     : 0);
+            cmp != 0)
+            return cmp;
+        return 0;
+    }
 
 private:
     constexpr explicit Time(i64 seconds, u32 nanoseconds)
@@ -313,41 +354,14 @@ inline void timespec_to_timeval(TimespecType const& ts, TimevalType& tv)
     tv.tv_usec = ts.tv_nsec / 1000;
 }
 
-template<TimeSpecType T>
-inline bool operator>=(T const& a, T const& b)
-{
-    return a.tv_sec > b.tv_sec || (a.tv_sec == b.tv_sec && a.tv_nsec >= b.tv_nsec);
-}
+// To use these, add a ``using namespace AK::TimeLiterals`` at block or file scope
+namespace TimeLiterals {
 
-template<TimeSpecType T>
-inline bool operator>(T const& a, T const& b)
-{
-    return a.tv_sec > b.tv_sec || (a.tv_sec == b.tv_sec && a.tv_nsec > b.tv_nsec);
-}
+constexpr Time operator""_ns(unsigned long long nanoseconds) { return Time::from_nanoseconds(static_cast<i64>(nanoseconds)); }
+constexpr Time operator""_us(unsigned long long microseconds) { return Time::from_microseconds(static_cast<i64>(microseconds)); }
+constexpr Time operator""_ms(unsigned long long milliseconds) { return Time::from_milliseconds(static_cast<i64>(milliseconds)); }
+constexpr Time operator""_sec(unsigned long long seconds) { return Time::from_seconds(static_cast<i64>(seconds)); }
 
-template<TimeSpecType T>
-inline bool operator<(T const& a, T const& b)
-{
-    return a.tv_sec < b.tv_sec || (a.tv_sec == b.tv_sec && a.tv_nsec < b.tv_nsec);
-}
-
-template<TimeSpecType T>
-inline bool operator<=(T const& a, T const& b)
-
-{
-    return a.tv_sec < b.tv_sec || (a.tv_sec == b.tv_sec && a.tv_nsec <= b.tv_nsec);
-}
-
-template<TimeSpecType T>
-inline bool operator==(T const& a, T const& b)
-{
-    return a.tv_sec == b.tv_sec && a.tv_nsec == b.tv_nsec;
-}
-
-template<TimeSpecType T>
-inline bool operator!=(T const& a, T const& b)
-{
-    return a.tv_sec != b.tv_sec || a.tv_nsec != b.tv_nsec;
 }
 
 }
@@ -369,10 +383,4 @@ using AK::timeval_add;
 using AK::timeval_sub;
 using AK::timeval_to_timespec;
 using AK::years_to_days_since_epoch;
-using AK::operator<=;
-using AK::operator<;
-using AK::operator>;
-using AK::operator>=;
-using AK::operator==;
-using AK::operator!=;
 #endif

@@ -12,15 +12,13 @@
 #include <AK/Atomic.h>
 #include <AK/Error.h>
 #include <AK/Format.h>
+#include <AK/Forward.h>
 #include <AK/NonnullRefPtr.h>
 #include <AK/StdLibExtras.h>
 #include <AK/Traits.h>
 #include <AK/Types.h>
 
 namespace AK {
-
-template<typename T>
-class OwnPtr;
 
 template<typename T>
 class [[nodiscard]] RefPtr {
@@ -355,6 +353,7 @@ inline ErrorOr<NonnullRefPtr<T>> adopt_nonnull_ref_or_enomem(T* object)
 }
 
 #if USING_AK_GLOBALLY
+using AK::adopt_nonnull_ref_or_enomem;
 using AK::adopt_ref_if_nonnull;
 using AK::RefPtr;
 using AK::static_ptr_cast;

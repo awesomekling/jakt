@@ -442,6 +442,24 @@ public:
         return removed_count;
     }
 
+    T pop()
+    {
+        VERIFY(!is_empty());
+        T element;
+        if constexpr (IsOrdered) {
+            element = *m_collection_data.tail->slot();
+        } else {
+            for (size_t i = 0; i < m_capacity; ++i) {
+                if (is_used_bucket(m_buckets[i].state)) {
+                    element = *m_buckets[i].slot();
+                    break;
+                }
+            }
+        }
+        remove(element);
+        return element;
+    }
+
 private:
     void insert_during_rehash(T&& value)
     {
@@ -576,7 +594,7 @@ private:
                     }
                 } else if (target_bucket->state == BucketState::Rehashed) {
                     // If the target bucket is already re-hashed, we do normal probing.
-                    target_hash = double_hash(target_hash);
+                    target_hash = rehash_for_collision(target_hash);
                     target_bucket = &m_buckets[target_hash % m_capacity];
                 } else {
                     VERIFY(target_bucket->state != BucketState::End);
@@ -658,7 +676,7 @@ private:
             if (bucket.state != BucketState::Used && bucket.state != BucketState::Deleted)
                 return nullptr;
 
-            hash = double_hash(hash);
+            hash = rehash_for_collision(hash);
         }
     }
 
@@ -685,7 +703,7 @@ private:
                     return const_cast<BucketType*>(first_empty_bucket);
             }
 
-            hash = double_hash(hash);
+            hash = rehash_for_collision(hash);
         }
     }
     [[nodiscard]] BucketType& lookup_for_writing(T const& value)

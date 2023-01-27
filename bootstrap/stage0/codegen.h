@@ -82,6 +82,7 @@ ErrorOr<DeprecatedString> codegen_enum_type(types::EnumId const id, bool const a
 ErrorOr<DeprecatedString> codegen_constructor(NonnullRefPtr<types::CheckedFunction> const function_, bool const is_inline);
 ErrorOr<DeprecatedString> codegen_enum_debug_description_getter(types::CheckedEnum const enum_, bool const is_inline);
 ErrorOr<DeprecatedString> codegen_enum_match(types::CheckedEnum const enum_, NonnullRefPtr<typename types::CheckedExpression> const expr, JaktInternal::DynamicArray<types::CheckedMatchCase> const match_cases, types::TypeId const type_id, bool const all_variants_constant);
+ErrorOr<DeprecatedString> codegen_lambda_block(bool const can_throw, types::CheckedBlock const block, types::TypeId const return_type_id);
 ErrorOr<DeprecatedString> codegen_match(NonnullRefPtr<typename types::CheckedExpression> const expr, JaktInternal::DynamicArray<types::CheckedMatchCase> const match_cases, types::TypeId const type_id, bool const all_variants_constant);
 ErrorOr<DeprecatedString> codegen_function_return_type(NonnullRefPtr<types::CheckedFunction> const function_);
 static ErrorOr<JaktInternal::Dictionary<DeprecatedString,JaktInternal::Tuple<DeprecatedString,DeprecatedString>>> generate(NonnullRefPtr<compiler::Compiler> const compiler, NonnullRefPtr<types::CheckedProgram> const program, bool const debug_info);

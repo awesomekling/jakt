@@ -367,7 +367,8 @@ ErrorOr<void> FormatBuilder::put_fixed_point(
     size_t min_width,
     size_t precision,
     char fill,
-    SignMode sign_mode)
+    SignMode sign_mode,
+    RealNumberDisplayMode display_mode)
 {
     StringBuilder string_builder;
     FormatBuilder format_builder { string_builder };
@@ -388,6 +389,15 @@ ErrorOr<void> FormatBuilder::put_fixed_point(
         auto fraction = (scale * fraction_value) / fraction_one; // TODO: overflows
         if (is_negative)
             fraction = scale - fraction;
+
+        size_t leading_zeroes = 0;
+        {
+            auto scale_tmp = scale / 10;
+            for (; fraction < scale_tmp; ++leading_zeroes) {
+                scale_tmp /= 10;
+            }
+        }
+
         while (fraction != 0 && fraction % 10 == 0)
             fraction /= 10;
 
@@ -395,20 +405,26 @@ ErrorOr<void> FormatBuilder::put_fixed_point(
         {
             auto fraction_tmp = fraction;
             for (; visible_precision < precision; ++visible_precision) {
-                if (fraction_tmp == 0)
+                if (fraction_tmp == 0 && display_mode != RealNumberDisplayMode::FixedPoint)
                     break;
                 fraction_tmp /= 10;
             }
         }
 
+        if (visible_precision == 0)
+            leading_zeroes = 0;
+
         if (zero_pad || visible_precision > 0)
             TRY(string_builder.try_append('.'));
+
+        if (leading_zeroes > 0)
+            TRY(format_builder.put_u64(0, base, false, false, true, Align::Right, leading_zeroes));
 
         if (visible_precision > 0)
             TRY(format_builder.put_u64(fraction, base, false, upper_case, true, Align::Right, visible_precision));
 
-        if (zero_pad && (precision - visible_precision) > 0)
-            TRY(format_builder.put_u64(0, base, false, false, true, Align::Right, precision - visible_precision));
+        if (zero_pad && (precision - leading_zeroes - visible_precision) > 0)
+            TRY(format_builder.put_u64(0, base, false, false, true, Align::Right, precision - leading_zeroes - visible_precision));
     }
 
     TRY(put_string(string_builder.string_view(), align, min_width, NumericLimits<size_t>::max(), fill));
@@ -425,7 +441,8 @@ ErrorOr<void> FormatBuilder::put_f64(
     size_t min_width,
     size_t precision,
     char fill,
-    SignMode sign_mode)
+    SignMode sign_mode,
+    RealNumberDisplayMode display_mode)
 {
     StringBuilder string_builder;
     FormatBuilder format_builder { string_builder };
@@ -464,7 +481,7 @@ ErrorOr<void> FormatBuilder::put_f64(
 
         size_t visible_precision = 0;
         for (; visible_precision < precision; ++visible_precision) {
-            if (value - static_cast<i64>(value) < epsilon)
+            if (value - static_cast<i64>(value) < epsilon && display_mode != RealNumberDisplayMode::FixedPoint)
                 break;
             value *= 10.0;
             epsilon *= 10.0;
@@ -492,7 +509,8 @@ ErrorOr<void> FormatBuilder::put_f80(
     size_t min_width,
     size_t precision,
     char fill,
-    SignMode sign_mode)
+    SignMode sign_mode,
+    RealNumberDisplayMode display_mode)
 {
     StringBuilder string_builder;
     FormatBuilder format_builder { string_builder };
@@ -531,7 +549,7 @@ ErrorOr<void> FormatBuilder::put_f80(
 
         size_t visible_precision = 0;
         for (; visible_precision < precision; ++visible_precision) {
-            if (value - static_cast<i64>(value) < epsilon)
+            if (value - static_cast<i64>(value) < epsilon && display_mode != RealNumberDisplayMode::FixedPoint)
                 break;
             value *= 10.0l;
             epsilon *= 10.0l;
@@ -651,7 +669,7 @@ void StandardFormatter::parse(TypeErasedFormatParams& params, FormatParser& pars
     else if (parser.consume_specific('p'))
         m_mode = Mode::Pointer;
     else if (parser.consume_specific('f'))
-        m_mode = Mode::Float;
+        m_mode = Mode::FixedPoint;
     else if (parser.consume_specific('a'))
         m_mode = Mode::Hexfloat;
     else if (parser.consume_specific('A'))
@@ -794,9 +812,12 @@ ErrorOr<void> Formatter<long double>::format(FormatBuilder& builder, long double
 {
     u8 base;
     bool upper_case;
-    if (m_mode == Mode::Default || m_mode == Mode::Float) {
+    FormatBuilder::RealNumberDisplayMode real_number_display_mode = FormatBuilder::RealNumberDisplayMode::General;
+    if (m_mode == Mode::Default || m_mode == Mode::FixedPoint) {
         base = 10;
         upper_case = false;
+        if (m_mode == Mode::FixedPoint)
+            real_number_display_mode = FormatBuilder::RealNumberDisplayMode::FixedPoint;
     } else if (m_mode == Mode::Hexfloat) {
         base = 16;
         upper_case = false;
@@ -810,16 +831,19 @@ ErrorOr<void> Formatter<long double>::format(FormatBuilder& builder, long double
     m_width = m_width.value_or(0);
     m_precision = m_precision.value_or(6);
 
-    return builder.put_f80(value, base, upper_case, m_align, m_width.value(), m_precision.value(), m_fill, m_sign_mode);
+    return builder.put_f80(value, base, upper_case, m_align, m_width.value(), m_precision.value(), m_fill, m_sign_mode, real_number_display_mode);
 }
 
 ErrorOr<void> Formatter<double>::format(FormatBuilder& builder, double value)
 {
     u8 base;
     bool upper_case;
-    if (m_mode == Mode::Default || m_mode == Mode::Float) {
+    FormatBuilder::RealNumberDisplayMode real_number_display_mode = FormatBuilder::RealNumberDisplayMode::General;
+    if (m_mode == Mode::Default || m_mode == Mode::FixedPoint) {
         base = 10;
         upper_case = false;
+        if (m_mode == Mode::FixedPoint)
+            real_number_display_mode = FormatBuilder::RealNumberDisplayMode::FixedPoint;
     } else if (m_mode == Mode::Hexfloat) {
         base = 16;
         upper_case = false;
@@ -833,7 +857,7 @@ ErrorOr<void> Formatter<double>::format(FormatBuilder& builder, double value)
     m_width = m_width.value_or(0);
     m_precision = m_precision.value_or(6);
 
-    return builder.put_f64(value, base, upper_case, m_zero_pad, m_align, m_width.value(), m_precision.value(), m_fill, m_sign_mode);
+    return builder.put_f64(value, base, upper_case, m_zero_pad, m_align, m_width.value(), m_precision.value(), m_fill, m_sign_mode, real_number_display_mode);
 }
 
 ErrorOr<void> Formatter<float>::format(FormatBuilder& builder, float value)
@@ -877,10 +901,8 @@ void vdbgln(StringView fmtstr, TypeErasedFormatParams& params)
 
 #ifdef AK_OS_SERENITY
 #    ifdef KERNEL
-    if (Kernel::Processor::is_initialized()) {
-        struct timespec ts = {};
-        if (TimeManagement::is_initialized())
-            ts = TimeManagement::the().monotonic_time(TimePrecision::Coarse).to_timespec();
+    if (Kernel::Processor::is_initialized() && TimeManagement::is_initialized()) {
+        struct timespec ts = TimeManagement::the().monotonic_time(TimePrecision::Coarse).to_timespec();
         if (Kernel::Thread::current()) {
             auto& thread = *Kernel::Thread::current();
             builder.appendff("{}.{:03} \033[34;1m[#{} {}({}:{})]\033[0m: ", ts.tv_sec, ts.tv_nsec / 1000000, Kernel::Processor::current_id(), thread.process().name(), thread.pid().value(), thread.tid().value());
@@ -931,14 +953,17 @@ void vdmesgln(StringView fmtstr, TypeErasedFormatParams& params)
 #    ifdef AK_OS_SERENITY
     struct timespec ts = {};
 
-    if (TimeManagement::is_initialized())
+    if (TimeManagement::is_initialized()) {
         ts = TimeManagement::the().monotonic_time(TimePrecision::Coarse).to_timespec();
 
-    if (Kernel::Processor::is_initialized() && Kernel::Thread::current()) {
-        auto& thread = *Kernel::Thread::current();
-        builder.appendff("{}.{:03} \033[34;1m[{}({}:{})]\033[0m: ", ts.tv_sec, ts.tv_nsec / 1000000, thread.process().name(), thread.pid().value(), thread.tid().value());
+        if (Kernel::Processor::is_initialized() && Kernel::Thread::current()) {
+            auto& thread = *Kernel::Thread::current();
+            builder.appendff("{}.{:03} \033[34;1m[{}({}:{})]\033[0m: ", ts.tv_sec, ts.tv_nsec / 1000000, thread.process().name(), thread.pid().value(), thread.tid().value());
+        } else {
+            builder.appendff("{}.{:03} \033[34;1m[Kernel]\033[0m: ", ts.tv_sec, ts.tv_nsec / 1000000);
+        }
     } else {
-        builder.appendff("{}.{:03} \033[34;1m[Kernel]\033[0m: ", ts.tv_sec, ts.tv_nsec / 1000000);
+        builder.appendff("\033[34;1m[Kernel]\033[0m: ");
     }
 #    endif
 

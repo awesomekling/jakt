@@ -5,18 +5,17 @@
  */
 
 #include <AK/ByteBuffer.h>
+#include <AK/DeprecatedFlyString.h>
 #include <AK/DeprecatedString.h>
-#include <AK/FlyString.h>
 #include <AK/Format.h>
 #include <AK/Function.h>
-#include <AK/Memory.h>
 #include <AK/StdLibExtras.h>
 #include <AK/StringView.h>
 #include <AK/Vector.h>
 
 namespace AK {
 
-bool DeprecatedString::operator==(FlyString const& fly_string) const
+bool DeprecatedString::operator==(DeprecatedFlyString const& fly_string) const
 {
     return m_impl == fly_string.impl() || view() == fly_string.view();
 }
@@ -172,7 +171,8 @@ Optional<T> DeprecatedString::to_int(TrimWhitespace trim_whitespace) const
 template Optional<i8> DeprecatedString::to_int(TrimWhitespace) const;
 template Optional<i16> DeprecatedString::to_int(TrimWhitespace) const;
 template Optional<i32> DeprecatedString::to_int(TrimWhitespace) const;
-template Optional<i64> DeprecatedString::to_int(TrimWhitespace) const;
+template Optional<long> DeprecatedString::to_int(TrimWhitespace) const;
+template Optional<long long> DeprecatedString::to_int(TrimWhitespace) const;
 
 template<typename T>
 Optional<T> DeprecatedString::to_uint(TrimWhitespace trim_whitespace) const
@@ -375,7 +375,7 @@ DeprecatedString escape_html_entities(StringView html)
     return builder.to_deprecated_string();
 }
 
-DeprecatedString::DeprecatedString(FlyString const& string)
+DeprecatedString::DeprecatedString(DeprecatedFlyString const& string)
     : m_impl(string.impl())
 {
 }

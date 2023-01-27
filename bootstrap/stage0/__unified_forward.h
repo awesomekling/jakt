@@ -346,6 +346,7 @@ namespace ParsedCapture_Details {
 struct ByValue;
 struct ByReference;
 struct ByMutableReference;
+struct AllByReference;
 }
 struct ParsedCapture;
 
@@ -726,6 +727,7 @@ namespace CheckedCapture_Details {
 struct ByValue;
 struct ByReference;
 struct ByMutableReference;
+struct AllByReference;
 }
 struct CheckedCapture;
 
