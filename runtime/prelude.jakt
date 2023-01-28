@@ -42,6 +42,7 @@ extern struct ArraySlice<T> {
 extern struct CodePointIterator {
     function next(mut this) -> u32?
     function peek(this) -> u32?
+    function byte_offset(this) -> usize
 }
 
 [[name=DeprecatedString]]
