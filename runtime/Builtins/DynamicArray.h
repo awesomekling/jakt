@@ -160,6 +160,7 @@ public:
     }
 
     T* unsafe_data() { return m_elements; }
+    T const* unsafe_data() const { return m_elements; }
 
 private:
     size_t m_size { 0 };
@@ -209,11 +210,16 @@ public:
     ~DynamicArray() = default;
 
     DynamicArray(Vector<T>&& vector)
-        : m_storage(MUST(adopt_nonnull_ref_or_enomem(new (nothrow) Storage)))
+        : m_storage(MUST(adopt_nonnull_ref_or_enomem(new(nothrow) Storage)))
     {
         MUST(ensure_capacity(vector.size()));
         for (auto& item : vector)
             MUST(push(move(item)));
+    }
+
+    operator Span<T const>() const
+    {
+        return { unsafe_data(), size() };
     }
 
     ArrayIterator<T> iterator() const
@@ -346,6 +352,11 @@ public:
     }
 
     T* unsafe_data()
+    {
+        return m_storage->unsafe_data();
+    }
+
+    T const* unsafe_data() const
     {
         return m_storage->unsafe_data();
     }
