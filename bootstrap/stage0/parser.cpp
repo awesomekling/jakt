@@ -5553,15 +5553,15 @@ TRY((((*this).error(TRY((__jakt_format(Jakt::DeprecatedString("Could not parse h
 return (TRY((parser::ParsedExpression::template create<typename parser::ParsedExpression::Garbage>(span))));
 }
 {
-JaktInternal::Range<size_t> _magic = (JaktInternal::Range<size_t>{static_cast<size_t>(0LL),static_cast<size_t>(((number).length()))});
+DeprecatedStringCodePointIterator _magic = ((number).code_points());
 for (;;){
-JaktInternal::Optional<size_t> _magic_value = ((_magic).next());
+JaktInternal::Optional<u32> _magic_value = ((_magic).next());
 if ((!(((_magic_value).has_value())))){
 break;
 }
-size_t i = (_magic_value.value());
+u32 cp = (_magic_value.value());
 {
-u8 const byte = ((number).byte_at(i));
+u8 const byte = as_saturated<u8, u32>(cp);
 if ((byte != '_')){
 u8 offset = static_cast<u8>(0);
 if (((byte >= 'a') && (byte <= 'z'))){
@@ -5590,15 +5590,15 @@ TRY((((*this).error(TRY((__jakt_format(Jakt::DeprecatedString("Could not parse o
 return (TRY((parser::ParsedExpression::template create<typename parser::ParsedExpression::Garbage>(span))));
 }
 {
-JaktInternal::Range<size_t> _magic = (JaktInternal::Range<size_t>{static_cast<size_t>(0LL),static_cast<size_t>(((number).length()))});
+DeprecatedStringCodePointIterator _magic = ((number).code_points());
 for (;;){
-JaktInternal::Optional<size_t> _magic_value = ((_magic).next());
+JaktInternal::Optional<u32> _magic_value = ((_magic).next());
 if ((!(((_magic_value).has_value())))){
 break;
 }
-size_t i = (_magic_value.value());
+u32 cp = (_magic_value.value());
 {
-u8 const byte = ((number).byte_at(i));
+u8 const byte = as_saturated<u8, u32>(cp);
 if ((byte != '_')){
 u64 const digit = as_saturated<u64, u8>((JaktInternal::checked_sub<u8>(byte,'0')));
 (total = (JaktInternal::checked_add<u64>((JaktInternal::checked_mul<u64>(total,static_cast<u64>(8ULL))),digit)));
@@ -5619,15 +5619,15 @@ TRY((((*this).error(TRY((__jakt_format(Jakt::DeprecatedString("Could not parse b
 return (TRY((parser::ParsedExpression::template create<typename parser::ParsedExpression::Garbage>(span))));
 }
 {
-JaktInternal::Range<size_t> _magic = (JaktInternal::Range<size_t>{static_cast<size_t>(0LL),static_cast<size_t>(((number).length()))});
+DeprecatedStringCodePointIterator _magic = ((number).code_points());
 for (;;){
-JaktInternal::Optional<size_t> _magic_value = ((_magic).next());
+JaktInternal::Optional<u32> _magic_value = ((_magic).next());
 if ((!(((_magic_value).has_value())))){
 break;
 }
-size_t i = (_magic_value.value());
+u32 cp = (_magic_value.value());
 {
-u8 const byte = ((number).byte_at(i));
+u8 const byte = as_saturated<u8, u32>(cp);
 if ((byte != '_')){
 u64 const digit = as_saturated<u64, u8>((JaktInternal::checked_sub<u8>(byte,'0')));
 (total = (JaktInternal::checked_add<u64>((JaktInternal::checked_mul<u64>(total,static_cast<u64>(2ULL))),digit)));
@@ -5664,15 +5664,15 @@ TRY((((*this).error(TRY((__jakt_format(Jakt::DeprecatedString("Could not parse n
 return (TRY((parser::ParsedExpression::template create<typename parser::ParsedExpression::Garbage>(span))));
 }
 {
-JaktInternal::Range<size_t> _magic = (JaktInternal::Range<size_t>{static_cast<size_t>(0LL),static_cast<size_t>(((number).length()))});
+DeprecatedStringCodePointIterator _magic = ((number).code_points());
 for (;;){
-JaktInternal::Optional<size_t> _magic_value = ((_magic).next());
+JaktInternal::Optional<u32> _magic_value = ((_magic).next());
 if ((!(((_magic_value).has_value())))){
 break;
 }
-size_t i = (_magic_value.value());
+u32 cp = (_magic_value.value());
 {
-u8 const byte = ((number).byte_at(i));
+u8 const byte = as_saturated<u8, u32>(cp);
 if ((byte != '_')){
 if ((byte == '.')){
 (floating = true);

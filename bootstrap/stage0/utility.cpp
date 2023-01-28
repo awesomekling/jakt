@@ -65,18 +65,17 @@ ErrorOr<DeprecatedString> interpret_escapes(DeprecatedString const s) {
 DeprecatedStringBuilder builder = TRY((DeprecatedStringBuilder::create()));
 bool in_escape = false;
 {
-JaktInternal::Range<size_t> _magic = (JaktInternal::Range<size_t>{static_cast<size_t>(static_cast<size_t>(0ULL)),static_cast<size_t>(((s).length()))});
+DeprecatedStringCodePointIterator _magic = ((s).code_points());
 for (;;){
-JaktInternal::Optional<size_t> _magic_value = ((_magic).next());
+JaktInternal::Optional<u32> _magic_value = ((_magic).next());
 if ((!(((_magic_value).has_value())))){
 break;
 }
-size_t i = (_magic_value.value());
+u32 cp = (_magic_value.value());
 {
-u8 const c = ((s).byte_at(i));
 JAKT_RESOLVE_EXPLICIT_VALUE_OR_CONTROL_FLOW_AT_LOOP(([&]() -> JaktInternal::ExplicitValueOrControlFlow<void,ErrorOr<DeprecatedString>>{
-auto __jakt_enum_value = (c);
-if (__jakt_enum_value == '\\') {
+auto __jakt_enum_value = (cp);
+if (__jakt_enum_value == (infallible_integer_cast<u32>(('\\')))) {
 {
 if (in_escape){
 TRY((((builder).append('\\'))));
@@ -89,32 +88,32 @@ else {
 }
 return JaktInternal::ExplicitValue<void>();
 }
-else if (__jakt_enum_value == '"') {
+else if (__jakt_enum_value == (infallible_integer_cast<u32>(('"')))) {
 {
 if (in_escape){
-TRY((((builder).append(c))));
+TRY((((builder).append_code_point(cp))));
 (in_escape = false);
 }
 }
 return JaktInternal::ExplicitValue<void>();
 }
-else if (__jakt_enum_value == '\'') {
+else if (__jakt_enum_value == (infallible_integer_cast<u32>(('\'')))) {
 {
 if (in_escape){
-TRY((((builder).append(c))));
+TRY((((builder).append_code_point(cp))));
 (in_escape = false);
 }
 }
 return JaktInternal::ExplicitValue<void>();
 }
-else if (__jakt_enum_value == 'n') {
+else if (__jakt_enum_value == (infallible_integer_cast<u32>(('n')))) {
 {
 if (in_escape){
 TRY((((builder).append('\n'))));
 (in_escape = false);
 }
 else {
-TRY((((builder).append(c))));
+TRY((((builder).append_code_point(cp))));
 }
 
 }
@@ -122,7 +121,7 @@ return JaktInternal::ExplicitValue<void>();
 }
 else {
 {
-TRY((((builder).append(c))));
+TRY((((builder).append_code_point(cp))));
 (in_escape = false);
 }
 return JaktInternal::ExplicitValue<void>();
@@ -235,30 +234,29 @@ ErrorOr<DeprecatedString> escape_for_quotes(DeprecatedString const s) {
 {
 DeprecatedStringBuilder builder = TRY((DeprecatedStringBuilder::create()));
 {
-JaktInternal::Range<size_t> _magic = (JaktInternal::Range<size_t>{static_cast<size_t>(static_cast<size_t>(0ULL)),static_cast<size_t>(((s).length()))});
+DeprecatedStringCodePointIterator _magic = ((s).code_points());
 for (;;){
-JaktInternal::Optional<size_t> _magic_value = ((_magic).next());
+JaktInternal::Optional<u32> _magic_value = ((_magic).next());
 if ((!(((_magic_value).has_value())))){
 break;
 }
-size_t i = (_magic_value.value());
+u32 cp = (_magic_value.value());
 {
-u8 const c = ((s).byte_at(i));
 JAKT_RESOLVE_EXPLICIT_VALUE_OR_CONTROL_FLOW_AT_LOOP(([&]() -> JaktInternal::ExplicitValueOrControlFlow<void,ErrorOr<DeprecatedString>>{
-auto __jakt_enum_value = (c);
-if (__jakt_enum_value == '"') {
+auto __jakt_enum_value = (cp);
+if (__jakt_enum_value == (infallible_integer_cast<u32>(('"')))) {
 {
 TRY((((builder).append_string(Jakt::DeprecatedString("\\\""sv)))));
 }
 return JaktInternal::ExplicitValue<void>();
 }
-else if (__jakt_enum_value == '\\') {
+else if (__jakt_enum_value == (infallible_integer_cast<u32>(('\\')))) {
 {
 TRY((((builder).append_string(Jakt::DeprecatedString("\\\\"sv)))));
 }
 return JaktInternal::ExplicitValue<void>();
 }
-else if (__jakt_enum_value == '\n') {
+else if (__jakt_enum_value == (infallible_integer_cast<u32>(('\n')))) {
 {
 TRY((((builder).append_string(Jakt::DeprecatedString("\\n"sv)))));
 }
@@ -266,7 +264,7 @@ return JaktInternal::ExplicitValue<void>();
 }
 else {
 {
-TRY((((builder).append(c))));
+TRY((((builder).append_code_point(cp))));
 }
 return JaktInternal::ExplicitValue<void>();
 }

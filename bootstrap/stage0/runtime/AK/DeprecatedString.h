@@ -95,6 +95,8 @@ public:
 
     DeprecatedString(DeprecatedFlyString const&);
 
+    static ErrorOr<DeprecatedString> from_utf8(ReadonlyBytes);
+
     [[nodiscard]] static DeprecatedString repeated(char, size_t count);
     [[nodiscard]] static DeprecatedString repeated(StringView, size_t count);
 
@@ -106,7 +108,7 @@ public:
     {
         StringBuilder builder;
         builder.join(separator, collection, fmtstr);
-        return builder.build();
+        return builder.to_deprecated_string();
     }
 
     [[nodiscard]] bool matches(StringView mask, CaseSensitivity = CaseSensitivity::CaseInsensitive) const;
@@ -217,12 +219,10 @@ public:
     bool operator==(DeprecatedFlyString const&) const;
 
     bool operator<(DeprecatedString const&) const;
-    bool operator<(char const*) const;
     bool operator>=(DeprecatedString const& other) const { return !(*this < other); }
     bool operator>=(char const* other) const { return !(*this < other); }
 
     bool operator>(DeprecatedString const&) const;
-    bool operator>(char const*) const;
     bool operator<=(DeprecatedString const& other) const { return !(*this > other); }
     bool operator<=(char const* other) const { return !(*this > other); }
 
