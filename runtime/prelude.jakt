@@ -48,6 +48,7 @@ extern struct CodePointIterator {
 [[name=DeprecatedString]]
 extern struct String {
     function code_points(this) -> CodePointIterator
+    function from_utf8(anon bytes: [u8]) throws -> String
     function number(anon number: i64) -> String
     function split(this, anon c: c_char) -> [String]
     [[name=characters]]
