@@ -13,65 +13,60 @@ enum ParsedTest {
     NoExpectOrSkip
 }
 
-function is_whitespace(anon byte: u8) -> bool => byte == b' ' or byte == b'\t' or byte == b'\r'
+function is_whitespace(anon cp: u32) -> bool => cp == ' ' as! u32 or cp == '\t' as! u32 or cp == '\r' as! u32
 
 struct Parser {
-    index: usize
-    input: [u8]
+    iterator: CodePointIterator
 
-    function is_eof(this) => .input.size() == .index
+    function is_eof(this) => .iterator.peek().has_value() == false
 
-    function current(this) => .input[.index]
+    function current(this) => .iterator.peek().value()
 
     function lex_literal(mut this, anon literal: String) -> bool {
-        if .index + literal.length() >= .input.size() {
-            return false
-        }
-
-        let start = .index
-
-        for i in 0..literal.length() {
-            if .current() != literal.byte_at(i) {
-                .index = start
+        mut it = .iterator
+        for lcp in literal.code_points() {
+            let cp = it.next()
+            guard cp.has_value() and cp! == lcp else {
                 return false
             }
-            .index++
         }
+        .iterator = it
         return true
     }
 
-
     function skip_whitespace(mut this) {
         while not .is_eof() and is_whitespace(.current()) {
-            .index++
+            .iterator.next()
         }
     }
 
-    function lex_quoted_string(mut this) -> Span? {
-        let nothing: Span? = None
-        if .is_eof() or .current() != b'"' {
-            return nothing
+    function lex_quoted_string(mut this) throws -> String? {
+        if .is_eof() or .current() != '"' as! u32 {
+            return None
         }
-        .index++
-        let start = .index
-        while not .is_eof() and .current() != b'"' {
-            let current = .current()
-            .index++
-            if current == b'\\' and not .is_eof() {
-                .index++
+        .iterator.next()
+        mut builder = StringBuilder::create()
+        while not .is_eof() {
+            let cp = .iterator.next()!
+            guard cp != '"' as! u32 else {
+
+                return builder.to_string()
+            }
+            builder.append(cp)
+            if cp == '\\' as! u32 {
+                let cp = .iterator.next()
+                guard cp.has_value() else {
+                    return None
+                }
+                builder.append(cp!)
             }
         }
-
-        if .current() != b'"' {
-            return nothing
-        }
-        .index++
-        return Span(start, end: .index - 1)
+        return None
     }
 
     function parse_test(mut this) throws -> ParsedTest {
         if not .lex_literal("///") {
-            .index++
+            .iterator.next()
             return ParsedTest::NoExpectOrSkip
         }
         .skip_whitespace()
@@ -88,10 +83,10 @@ struct Parser {
         if .lex_literal("selfhost-only") {
             .skip_whitespace()
         }
-        if .is_eof() or .current() != b'\n' {
+        if .is_eof() or .current() != '\n' as! u32 {
             return ParsedTest::NoExpectOrSkip
         }
-        .index++
+        .iterator.next()
         return .parse_test_information()
     }
 
@@ -108,10 +103,10 @@ struct Parser {
                 break
             }
             .skip_whitespace()
-            guard .current() == b'-' and not .is_eof() else {
+            guard .current() == '-' as! u32 and not .is_eof() else {
                 break
             }
-            .index++
+            .iterator.next()
             .skip_whitespace()
 
             if not success_test {
@@ -139,26 +134,22 @@ struct Parser {
             }
 
             .skip_whitespace()
-            if .is_eof() or .current() != b':' {
+            if .is_eof() or .current() != ':' as! u32 {
                 continue
             }
-            .index++
+            .iterator.next()
             .skip_whitespace()
-            let quoted_string_span = .lex_quoted_string()
-            if not quoted_string_span.has_value() {
+            let quoted_string = .lex_quoted_string()
+            guard quoted_string.has_value() else {
                 return ParsedTest::NoExpectOrSkip
             }
 
             // create the string
-            let span = quoted_string_span!
-            mut builder = StringBuilder::create()
-            for i in span.start..span.end {
-                builder.append(.input[i])
-            }
+            let string = quoted_string!
 
-            let parsed_string = parse_quoted_string(builder.to_string())
+            let parsed_string = parse_quoted_string(string)
             .skip_whitespace()
-            .index++
+            .iterator.next()
 
             if output.is_empty() and expect_output {
                 output = parsed_string
@@ -181,8 +172,8 @@ struct Parser {
         return ParsedTest::NoExpectOrSkip
     }
 
-    function parse(input: [u8]) throws -> ParsedTest {
-        mut parser = Parser(index: 0, input)
+    function parse(input: String) throws -> ParsedTest {
+        mut parser = Parser(iterator: input.code_points())
         return parser.parse_test()
     }
 }

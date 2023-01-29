@@ -714,8 +714,8 @@ function main(args: [String]) {
     // parse all files to collect the actual work we have to do
     for file_name in parsed_options.files {
         mut file = File::open_for_reading(file_name)
-        let contents = file.read_all()
-        let result = Parser::parse(input: contents)
+        let input = String::from_utf8(file.read_all())
+        let result = Parser::parse(input)
         match result {
             SuccessTest(output, cppincludes) => {
                 tests.push(Test(result: ExpectedResult(kind: ResultKind::Okay, output)
