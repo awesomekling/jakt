@@ -70,11 +70,9 @@ extern struct String {
 [[name=DeprecatedStringBuilder]]
 extern struct StringBuilder {
     function append(mut this, anon b: u8) throws
-    [[name=try_append]]
     function append(mut this, anon s: String) throws
-    [[name=try_append]]
     function append(mut this, anon s: raw c_char) throws
-    [[name=try_append]]
+    [[name=append_code_point]]
     function append(mut this, anon code_point: u32) throws
     function append_escaped_for_json(mut this, anon s: String) throws
     function to_string(this) throws -> String
